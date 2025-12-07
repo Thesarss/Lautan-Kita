@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk - Lautan Kita</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    body {
+      background-color: #d6d9ff;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      background-color: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 450px;
+      padding: 40px;
+    }
+    
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .logo img {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 10px;
+    }
+    
+    .logo h1 {
+      color: #1E3A8A;
+      font-size: 1.8rem;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #1E3A8A;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #93C5FD;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #3b9beb;
+    }
+    
+    .error-message {
+      color: #EF4444;
+      font-size: 0.8rem;
+      margin-top: 5px;
+      display: none;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    .btn-primary {
+      background-color: #3b9beb;
+      color: white;
+      margin-top: 10px;
+    }
+    
+    .btn-primary:hover {
+      background-color: #316EA0;
+    }
+    
+    .register-link {
+      text-align: center;
+      margin-top: 20px;
+      color: #1E3A8A;
+    }
+    
+    .register-link a {
+      color: #3b9beb;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    .register-link a:hover {
+      text-decoration: underline;
+    }
+    
+    .password-container {
+      position: relative;
+    }
+    
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #64748B;
+    }
+    
+    .forgot-password {
+      text-align: right;
+      margin-top: 5px;
+    }
+    
+    .forgot-password a {
+      color: #64748B;
+      font-size: 0.9rem;
+      text-decoration: none;
+    }
+    
+    .forgot-password a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <img src="img/logo.png" alt="Lautan Kita">
+      <h1>Lautan Kita</h1>
+    </div>
+    
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+        <div class="error-message" id="emailError">Email tidak valid</div>
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-container">
+          <input type="password" id="password" name="password" required minlength="8">
+          <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+        </div>
+        <div class="error-message" id="passwordError">Password minimal 8 karakter</div>
+        <div class="forgot-password">
+          <a href="forgot-password.html">Lupa password?</a>
+        </div>
+      </div>
+      
+      <button type="submit" class="btn btn-primary">Masuk</button>
+      
+      <div class="register-link">
+        Belum punya akun? <a href="registrasi.html">Daftar disini</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const script = document.createElement('script');
+    script.src = 'assets/js/api.js';
+    document.head.appendChild(script);
+    document.addEventListener('DOMContentLoaded', function() {
+      // Toggle password visibility
+      const togglePassword = document.querySelector('#togglePassword');
+      const password = document.querySelector('#password');
+      
+      togglePassword.addEventListener('click', function() {
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        this.classList.toggle('fa-eye-slash');
+      });
+      
+      // Form validation
+      const form = document.getElementById('loginForm');
+      
+      const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        let isValid = true;
+        
+        // Validate email
+        const email = document.getElementById('email').value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          document.getElementById('emailError').style.display = 'block';
+          isValid = false;
+        } else {
+          document.getElementById('emailError').style.display = 'none';
+        }
+        
+        // Validate password
+        const password = document.getElementById('password').value;
+        if (password.length < 8) {
+          document.getElementById('passwordError').style.display = 'block';
+          isValid = false;
+        } else {
+          document.getElementById('passwordError').style.display = 'none';
+        }
+        
+        if (isValid) {
+          try {
+            const resp = await fetch(API_BASE + '/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password })
+            });
+            if (!resp.ok) {
+              alert('Login gagal');
+              return;
+            }
+            const data = await resp.json();
+            localStorage.setItem('auth_token', data.token);
+            alert('Login berhasil!');
+            window.location.href = 'home_final.html';
+          } catch {
+            alert('Terjadi kesalahan jaringan');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

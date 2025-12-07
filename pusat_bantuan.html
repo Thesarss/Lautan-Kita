@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pusat Bantuan - Lautan Kita</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Nunito', sans-serif;
+      background-color: #f0f8ff;
+    }
+
+    .container {
+      max-width: 768px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .back-button {
+      background-color: #2e90d1;
+      border: none;
+      color: white;
+      font-size: 18px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      user-select: none;
+      font-weight: 700;
+    }
+
+    .back-button:hover {
+      background-color: #1a5f94;
+    }
+
+    h2 {
+      text-align: center;
+      color: #1a2d57;
+      margin-bottom: 20px;
+      font-weight: 800;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .search-box input {
+      width: 100%;
+      max-width: 500px;
+      padding: 12px 40px 12px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 20px;
+      font-size: 18px;
+      color: #2e90d1;
+      user-select: none;
+    }
+
+    .faq {
+      background-color: #e0f0ff;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .faq h3 {
+      font-size: 20px;
+      margin-bottom: 10px;
+      font-weight: 800;
+      color: #1a2d57;
+    }
+
+    .faq-item {
+      background-color: #e0f0ff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease;
+      position: relative;
+      font-weight: 700;
+      color: #1a2d57;
+      display: block;
+    }
+
+    .faq-item:hover {
+      background-color: #c9defb;
+    }
+
+    .faq-answer {
+      margin-top: 8px;
+      color: #333;
+      font-weight: 400;
+    }
+
+    /* Panah toggle */
+    .faq-item::after {
+      content: "▶";
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-weight: normal;
+      transition: transform 0.3s ease, font-weight 0.3s ease;
+      color: #2e90d1;
+    }
+    .faq-item.open::after {
+      content: "▼";
+      font-weight: 800;
+    }
+
+    .categories .cat {
+      background-color: #d5e9f9;
+      padding: 14px 20px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+      color: #1a2d57;
+    }
+
+    .categories .cat.active {
+      background-color: #b8dcf6;
+      font-weight: 800;
+      color: #0f1c3f;
+    }
+
+    .categories {
+      margin-bottom: 30px;
+    }
+
+    /* ====== FOOTER ====== */
+    footer {
+      background-color: #009fe3;
+      color: white;
+      padding: 2rem 1rem 1rem;
+      margin-top: 2rem;
+    }
+
+    .footer-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      padding: 20px;
+      color: white;
+    }
+
+    .footer-left,
+    .footer-right {
+      margin-bottom: 1.5rem;
+      max-width: 45%;
+      box-sizing: border-box;
+    }
+
+    .footer-left h4,
+    .footer-right h4 {
+      margin-top: 0;
+      font-weight: 800;
+    }
+
+    .footer-left p,
+    .footer-right p {
+      margin: 8px 0;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+
+    .footer-nav span {
+          margin-right: 10px;
+          display: inline-block;
+          margin-top: 10px;
+          cursor: pointer;
+          user-select: none;
+          font-weight: 700;
+    }
+
+    .footer-nav {
+      margin-top: 1rem;
+      display: flex;
+      gap: 1rem;
+      font-weight: bold;
+    }
+
+    .footer-nav a {
+      color: white;
+      text-decoration: none;
+      transition: color 0.3s ease, font-weight 0.3s ease;
+      font-weight: normal;
+    }
+
+    .footer-nav a:hover {
+      color: white;
+      text-decoration: underline;
+    }
+
+    .footer-nav a.active {
+      font-weight: 700; /* bold */
+    }
+
+    footer p {
+      margin: 4px 0;
+    }
+
+    footer .copyright {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .footer-left,
+      .footer-right {
+        max-width: 100%;
+        margin-bottom: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="back-button" onclick="window.location.href='home_final.html'">←</button>
+
+    <h2>Halo, Ada yang bisa dibantu?</h2>
+
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Cari pertanyaan atau jawaban..." autocomplete="off" />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="faq" id="faqList">
+      <h3>FAQ</h3>
+
+      <!-- Akun & Keamanan -->
+      <div class="faq-item" data-category="Akun & Keamanan" onclick="toggleAnswer(this)">
+        <strong>Apa itu Mutiara Samudra?</strong>
+        <div class="faq-answer" style="display:none">Mutiara Samudra adalah mata uang di aplikasi ini. Bisa digunakan untuk beli item dan didapatkan dari profil dan undang teman.</div>
+      </div>
+
+      <div class="faq-item" data-category="Akun & Keamanan" onclick="toggleAnswer(this)">
+        <strong>Saya lupa kata sandi bagaimana cara memulihkannya?</strong>
+        <div class="faq-answer" style="display:none">Klik "Lupa kata sandi" di halaman login dan ikuti instruksi.</div>
+      </div>
+
+      <!-- Pembayaran & Transaksi -->
+      <div class="faq-item" data-category="Pembayaran & Transaksi" onclick="toggleAnswer(this)">
+        <strong>Bagaimana cara melakukan pemesanan?</strong>
+        <div class="faq-answer" style="display:none">Pilih produk → Tambah ke keranjang → Checkout.</div>
+      </div>
+
+      <div class="faq-item" data-category="Pembayaran & Transaksi" onclick="toggleAnswer(this)">
+        <strong>Metode pembayaran apa saja yang tersedia?</strong>
+        <div class="faq-answer" style="display:none">Kami menerima transfer bank, kartu kredit, cod, dan e-wallet.</div>
+      </div>
+
+      <!-- Penggunaan Aplikasi -->
+      <div class="faq-item" data-category="Penggunaan Aplikasi" onclick="toggleAnswer(this)">
+        <strong>Bagaimana cara memperbarui profil saya?</strong>
+        <div class="faq-answer" style="display:none">Masuk ke menu profil, pilih 'Edit Profil', lalu simpan perubahan.</div>
+      </div>
+
+      <div class="faq-item" data-category="Penggunaan Aplikasi" onclick="toggleAnswer(this)">
+        <strong>Apakah aplikasi tersedia untuk iOS dan Android?</strong>
+        <div class="faq-answer" style="display:none">Ya, aplikasi kami tersedia di Google Play Store dan Apple App Store.</div>
+      </div>
+
+      <!-- Masalah Teknis -->
+      <div class="faq-item" data-category="Masalah Teknis" onclick="toggleAnswer(this)">
+        <strong>Aplikasi sering crash, apa yang harus saya lakukan?</strong>
+        <div class="faq-answer" style="display:none">Coba update aplikasi ke versi terbaru atau reinstall aplikasi.</div>
+      </div>
+
+      <div class="faq-item" data-category="Masalah Teknis" onclick="toggleAnswer(this)">
+        <strong>Apa yang harus dilakukan jika tidak bisa login?</strong>
+        <div class="faq-answer" style="display:none">Pastikan koneksi internet stabil dan coba reset kata sandi jika perlu.</div>
+      </div>
+
+      <!-- Kebijakan Privasi -->
+      <div class="faq-item" data-category="Kebijakan Privasi" onclick="toggleAnswer(this)">
+        <strong>Bagaimana data saya dilindungi?</strong>
+        <div class="faq-answer" style="display:none">Kami menggunakan enkripsi dan protokol keamanan standar industri.</div>
+      </div>
+
+      <!-- Hubungi Costumer Service -->
+      <div class="faq-item" data-category="Hubungi Costumer Service" onclick="toggleAnswer(this)">
+        <strong>Bagaimana cara menghubungi customer service?</strong>
+        <div class="faq-answer" style="display:none">Anda dapat mengirim email ke lautankita@gmail.com atau hubungi nomor telepon bantuan.</div>
+      </div>
+
+      <!-- Telepon Bantuan -->
+      <div class="faq-item" data-category="Telepon Bantuan" onclick="toggleAnswer(this)">
+        <strong>Nomor telepon bantuan berapa?</strong>
+        <div class="faq-answer" style="display:none">Silakan hubungi +62 811 1234 5678.</div>
+      </div>
+
+      <!-- Laporkan Masalah -->
+      <div class="faq-item" data-category="Laporkan Masalah" onclick="toggleAnswer(this)">
+        <strong>Bagaimana cara melaporkan masalah dalam aplikasi?</strong>
+        <div class="faq-answer" style="display:none">Gunakan fitur 'Laporkan Masalah' di menu pengaturan aplikasi atau kirim email kepada kami.</div>
+      </div>
+
+    <div class="categories">
+      <div class="cat" onclick="toggleCategory(this)">Akun & Keamanan</div>
+      <div class="cat" onclick="toggleCategory(this)">Pembayaran & Transaksi</div>
+      <div class="cat" onclick="toggleCategory(this)">Penggunaan Aplikasi</div>
+      <div class="cat" onclick="toggleCategory(this)">Masalah Teknis</div>
+      <div class="cat" onclick="toggleCategory(this)">Kebijakan Privasi</div>
+      <div class="cat" onclick="toggleCategory(this)">Hubungi Costumer Service</div>
+      <div class="cat" onclick="toggleCategory(this)">Telepon Bantuan</div>
+      <div class="cat" onclick="toggleCategory(this)">Laporkan Masalah</div>
+    </div>
+  </div>
+</div>
+
+  <footer>
+    <div class="footer-container">
+      <div class="footer-left">
+        <h4>Lautan Kita</h4>
+        <p>
+          Lautan Kita adalah platform digital inovatif yang menghubungkan nelayan lokal langsung dengan konsumen dan bisnis, menyediakan produk laut segar, transparan, dan berkelanjutan.
+        </p>
+        <style>
+          .footer-nav a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+          }
+        
+          .footer-nav a:hover {
+            color: white;
+            text-decoration: underline;
+          }
+        </style>
+        
+        <div class="footer-nav">
+          <h5><a href="home_final.html" class="footer-link">Beranda</a></h5>
+          <h5><a href="keranjang.html" class="footer-link">Keranjang</a></h5>
+          <h5><a href="pusat_bantuan.html" class="footer-link">Pusat Bantuan</a></h5>
+        </div>                      
+      </div>
+      <div class="footer-right">
+        <h4>Kontak Kami:</h4>
+        <p>📸 @lautankita</p>
+        <p>🎵 @lautankita</p>
+        <p>📞 +62 811 1234 5678</p>
+        <p>✉️ lautankita@gmail.com</p>
+        <h4>Alamat:</h4>
+        <p>📍 Ganet, BT 11, Tanjung Pinang Timur, Tanjung Pinang, Kepulauan Riau</p>
+      </div>
+    </div>
+    <p class="copyright">© 2025 Lautan Kita. All rights reserved</p>
+  </footer>
+
+  <script>
+    // Toggle jawaban FAQ dan panah bold
+    function toggleAnswer(item) {
+      const answer = item.querySelector(".faq-answer");
+      const isVisible = answer.style.display === "block";
+      answer.style.display = isVisible ? "none" : "block";
+      item.classList.toggle("open", !isVisible);
+    }
+  
+    // Toggle kategori FAQ dan filter FAQ sesuai kategori
+    function toggleCategory(el) {
+      const categories = document.querySelectorAll(".cat");
+      categories.forEach((cat) => cat.classList.remove("active"));
+      el.classList.add("active");
+  
+      const selected = el.textContent.trim();
+      const faqItems = document.querySelectorAll(".faq-item");
+  
+      faqItems.forEach((item) => {
+        const itemCat = item.getAttribute("data-category");
+        const answer = item.querySelector(".faq-answer");
+        if (itemCat === selected) {
+          item.style.display = "block";
+        } else {
+          item.style.display = "none";
+          if (answer) answer.style.display = "none";
+          item.classList.remove("open");
+        }
+      });
+    }
+  
+    // Inisialisasi: tampilkan FAQ kategori pertama otomatis dan tandai kategori pertama aktif
+    window.onload = () => {
+      const firstCategory = document.querySelector(".cat");
+      if (firstCategory) {
+        toggleCategory(firstCategory);
+      }
+    };
+  
+    // Fungsi filter pencarian FAQ
+    function filterFAQ(keyword) {
+      const filter = keyword.toLowerCase().trim();
+      const faqItems = document.querySelectorAll(".faq-item");
+      const categories = document.querySelectorAll(".cat");
+  
+      if (filter.length > 0) {
+        categories.forEach((cat) => cat.classList.remove("active"));
+  
+        faqItems.forEach((item) => {
+          const question = item.querySelector("strong").textContent.toLowerCase();
+          const answerText = item.querySelector(".faq-answer").textContent.toLowerCase();
+          const category = item.getAttribute("data-category").toLowerCase();
+  
+          const match = question.includes(filter) || answerText.includes(filter) || category.includes(filter);
+  
+          item.style.display = match ? "block" : "none";
+  
+          const answer = item.querySelector(".faq-answer");
+          if (answer) answer.style.display = "none";
+          item.classList.remove("open");
+        });
+      } else {
+        const firstCategory = document.querySelector(".cat");
+        if (firstCategory) toggleCategory(firstCategory);
+      }
+    }
+  
+    // Event listener untuk input search
+    const searchInput = document.getElementById("searchInput");
+  
+    searchInput.addEventListener("input", function () {
+      filterFAQ(this.value);
+    });
+  
+    // Event listener untuk tekan Enter
+    searchInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        filterFAQ(this.value);
+      }
+    });
+  </script>  
+</body>
+</html>

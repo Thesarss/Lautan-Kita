@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Checkout</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; margin: 0; background-color: #e9f3f9; color: #1a1a1a;}
+    .container { max-width: 800px; margin: auto; padding: 20px;}
+    .back-arrow { display: flex; align-items: center; margin-bottom: 18px; cursor: pointer; user-select: none;}
+    .back-arrow svg { width: 24px; height: 24px; margin-right: 8px;}
+    .user-info, .seller-info { display: flex; align-items: center; margin-bottom: 15px;}
+    .user-info img, .seller-info img { border-radius: 50%; width: 50px; height: 50px; margin-right: 10px;}
+    .card { background-color: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
+    .product-container { display: flex; gap: 20px; align-items: flex-start;}
+    .product-image-container { flex: 1; min-width: 150px;}
+    .product-info-container { flex: 2;}
+    .product-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px;}
+    .qty-box { display: flex; align-items: center; gap: 10px; margin-top: 15px;}
+    .qty-box button { padding: 5px 15px; font-size: 16px; background-color: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer;}
+    .qty-box button:hover { background-color: #005fa3;}
+    .shipping-options { display: flex; gap: 10px; margin-bottom: 20px; justify-content: space-between;}
+    .shipping-option { background: #f0f4f8; padding: 10px; border-radius: 10px; text-align: center; flex: 1; cursor: pointer; border: 2px solid transparent; transition: all 0.3s;}
+    .shipping-option:hover { background: #e0e8f0;}
+    .shipping-option.active { border-color: #0077cc; background-color: #d0ecff;}
+    .note { background-color: #dceff8; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;}
+    .price-summary { margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px;}
+    .price-summary div { display: flex; justify-content: space-between; margin: 8px 0;}
+    .checkout-btn { background-color: #0077cc; color: white; padding: 15px; border: none; width: 100%; font-size: 16px; border-radius: 12px; cursor: pointer; transition: background-color 0.3s; font-weight: bold;}
+    .checkout-btn:hover { background-color: #005fa3;}
+    select { width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ccc; background-color: white;}
+    .alert { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; z-index: 1000; opacity: 1; transition: opacity 0.5s; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15);}
+    .alert.error { background-color: #ff4444;}
+    .alert.success { background-color: #00C851;}
+    .alert.fade-out { opacity: 0;}
+    @media (max-width: 600px) {
+      .product-container { flex-direction: column; }
+      .product-image-container { width: 100%; text-align: center;}
+      .product-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px; background-color: #f5f5f5; padding: 10px;}
+      .shipping-options { flex-direction: column;}
+    }
+  </style>
+  <script src="assets/js/api.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Arrow Back -->
+    <div class="back-arrow" onclick="window.location.href='home_final.html'">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      <span>Kembali ke Beranda</span>
+    </div>
+
+    <div class="user-info">
+      <img src="img/pembeli.png" alt="Foto Pembeli">
+      <div>
+        <strong>Santi</strong><br>
+        <small>082294172833 · Bt 9, Rumah warna hijau</small>
+      </div>
+    </div>
+
+    <div class="seller-info">
+      <img src="img/penjual.png" alt="Foto Penjual">
+      <div><strong id="seller-name">Budi fisherman</strong></div>
+    </div>
+
+    <div id="produk-container"></div>
+
+    <div class="note">Catatan: Tambahkan ice pack dan bungkus yang tebal</div>
+
+    <h4>Opsi pengiriman</h4>
+    <div class="shipping-options">
+      <div class="shipping-option" onclick="pilihKurir('Hemat', 5000, event)">Hemat<br><small>Rp. 5.000</small><br><small>2 hari</small></div>
+      <div class="shipping-option" onclick="pilihKurir('Standar', 10000, event)">Standar<br><small>Rp. 10.000</small><br><small>1 jam</small></div>
+      <div class="shipping-option active" onclick="pilihKurir('Express', 35000, event)">Express<br><small>Rp. 35.000</small><br><small>30 menit</small></div>
+    </div>
+
+    <label for="pembayaran"><strong>Metode Pembayaran:</strong></label>
+    <select id="pembayaran">
+      <option value="BNI">BNI</option>
+      <option value="BCA">BCA</option>
+      <option value="Mandiri">Mandiri</option>
+      <option value="COD">Bayar di Tempat (COD)</option>
+    </select>
+
+    <div class="price-summary">
+      <div><span>Total Produk</span><span id="total-produk">Rp. 0</span></div>
+      <div><span>Pengiriman</span><span id="ongkir">Rp. 35.000</span></div>
+      <hr>
+      <div><strong>Total Harga</strong><strong id="total-harga">Rp. 35.000</strong></div>
+    </div>
+
+    <button class="checkout-btn" id="checkoutBtn" onclick="checkout()">Checkout</button>
+  </div>
+
+  <script>
+    // Fungsi tambah ke keranjang (bisa dipanggil dari halaman lain)
+    // Gunakan: tambahKeKeranjang(id, name, image, price, qty)
+    function tambahKeKeranjang(produkId, nama, gambar, harga, jumlah = 1) {
+      const cart = JSON.parse(localStorage.getItem('cart_checkout')) || [];
+      let found = cart.find(item => item.id === produkId);
+      jumlah = parseInt(jumlah) || 1;
+      if (found) {
+        found.quantity += jumlah;
+      } else {
+        cart.push({
+          id: produkId,
+          name: nama,
+          image: gambar,
+          price: harga,
+          quantity: jumlah
+        });
+      }
+      localStorage.setItem('cart_checkout', JSON.stringify(cart));
+      alert('Produk ditambahkan ke keranjang!');
+    }
+
+    // Daftar produk referensi
+    const products = {
+      'ikan belanak': {
+        id: 'ikan belanak',
+        name: 'Ikan Belanak',
+        price: 40000,
+        image: 'img/ikan-belanak.png',
+        description: 'Ikan belanak segar langsung dari laut, ditangkap pagi ini dengan metode ramah lingkungan.',
+        seller: 'Budi Fisherman',
+        rating: 5,
+        stock: '15'
+      },
+      'ikan puri': {
+        id: 'ikan puri',
+        name: 'Ikan Puri',
+        price: 25000,
+        image: 'img/ikan-puri.png',
+        description: 'Ikan puri segar dengan daging yang lembut dan gurih.',
+        seller: 'Budi Fisherman',
+        rating: 4,
+        stock: '9'
+      },
+      'udang': {
+        id: 'udang',
+        name: 'Udang',
+        price: 28000,
+        image: 'img/udang.png',
+        description: 'Udang segar ukuran besar dengan cita rasa manis alami.',
+        seller: 'Susi Seafood',
+        rating: 5,
+        stock: '7'
+      },
+      'kepiting': {
+        id: 'kepiting',
+        name: 'Kepiting',
+        price: 40000,
+        image: 'img/kepiting.png',
+        description: 'Kepiting segar dengan daging yang padat dan lezat.',
+        seller: 'Joko Nelayan',
+        rating: 4,
+        stock: '15'
+      },
+      'ikan tongkol': {
+        id: 'ikan tongkol',
+        name: 'Ikan Tongkol',
+        price: 37000,
+        image: 'img/ikan-tongkol.png',
+        description: 'Ikan tongkol segar dengan tekstur daging yang kenyal.',
+        seller: 'Budi Fisherman',
+        rating: 4,
+        stock: '12'
+      },
+      'sotong': {
+        id: 'sotong',
+        name: 'Sotong',
+        price: 64000,
+        image: 'img/sotong.png',
+        description: 'Sotong segar dengan cita rasa khas yang lezat.',
+        seller: 'Joko Nelayan',
+        rating: 5,
+        stock: '8'
+      },
+      'ikan kakap': {
+        id: 'ikan kakap',
+        name: 'Ikan Kakap',
+        price: 72000,
+        image: 'img/ikan-kakap.png',
+        description: 'Ikan kakap merah segar dengan daging tebal dan lembut.',
+        seller: 'Susi Seafood',
+        rating: 5,
+        stock: '11'
+      }
+    };
+
+    // Variabel global
+    let cartItems = [];
+    let ongkir = 35000;
+    let namaKurir = "Express";
+
+    function showAlert(type, message) {
+      const alertBox = document.createElement('div');
+      alertBox.className = `alert ${type}`;
+      alertBox.textContent = message;
+      document.body.appendChild(alertBox);
+      setTimeout(() => {
+        alertBox.classList.add('fade-out');
+        setTimeout(() => alertBox.remove(), 500);
+      }, 3000);
+    }
+
+    async function loadCart() {
+      const token = localStorage.getItem('auth_token');
+      if (!token) { document.getElementById("produk-container").innerHTML = "<div style='text-align:center;color:#888'>Silakan login</div>"; return; }
+      try {
+        const resp = await API.authFetch('/carts');
+        if (!resp.ok) { document.getElementById("produk-container").innerHTML = "<div style='text-align:center;color:#888'>Gagal memuat keranjang</div>"; return; }
+        const data = await resp.json();
+        cartItems = (data.items || []).map(it => ({ id: it.produk_id, name: it.nama_produk, image: 'img/logo.png', price: Number(it.harga || 0), quantity: Number(it.jumlah || 0), item_id: it.item_id, stock: Number(it.stok || 0) }));
+        renderCartProducts();
+      } catch { document.getElementById("produk-container").innerHTML = "<div style='text-align:center;color:#888'>Kesalahan jaringan</div>"; }
+    }
+
+    function renderCartProducts() {
+      const container = document.getElementById("produk-container");
+      container.innerHTML = "";
+      let sellerSet = new Set();
+
+      cartItems.forEach((item, index) => {
+        // Ambil data produk jika tersedia, jika tidak gunakan data dari cart
+        const product = products[item.id] || item;
+        sellerSet.add(product.seller || "-");
+
+        const jumlah = item.quantity;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="product-container">
+            <div class="product-image-container">
+              <img src="${product.image}" class="product-img" onerror="this.src='img/default product.png'" alt="${product.name}">
+            </div>
+            <div class="product-info-container">
+              <h3>${product.name}</h3>
+              <p style="color:#555; margin-top:-10px; margin-bottom:12px;">${product.description || ""}</p>
+              <p>Hasil laut segar hasil tangkapan nelayan lokal. Cocok untuk berbagai jenis masakan khas Indonesia.</p>
+              <strong>Rp. ${product.price.toLocaleString('id-ID')}</strong>
+              <div class="qty-box">
+                <button onclick="ubahJumlah(${index}, -1)">-</button>
+                <span id="jumlah-${index}">${jumlah}</span> Kg
+                <button onclick="ubahJumlah(${index}, 1)">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      let sellerName = sellerSet.size === 1 ? Array.from(sellerSet)[0] : 'Multi Seller';
+      document.getElementById('seller-name').textContent = sellerName;
+
+      updateHarga();
+    }
+
+    async function ubahJumlah(index, change) {
+      const item = cartItems[index];
+      const product = products[item.id] || item;
+      const newQty = item.quantity + change;
+      if (newQty < 1) { showAlert('error','Minimal 1 kg'); return; }
+      if (product.stock && newQty > parseInt(product.stock)) { showAlert('error', `Stok hanya tersedia ${product.stock} kg`); return; }
+      try {
+        const resp = await API.authFetch('/carts/items/' + item.item_id, { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ jumlah: newQty }) });
+        if (!resp.ok) { showAlert('error','Gagal mengubah jumlah'); return; }
+        item.quantity = newQty;
+        document.getElementById(`jumlah-${index}`).textContent = newQty;
+        updateHarga();
+      } catch { showAlert('error','Kesalahan jaringan'); }
+    }
+
+    function pilihKurir(nama, harga, event) {
+      namaKurir = nama;
+      ongkir = harga;
+
+      document.querySelectorAll(".shipping-option").forEach(el => {
+        el.classList.remove("active");
+      });
+      event.currentTarget.classList.add("active");
+
+      updateHarga();
+    }
+
+    function updateHarga() {
+      let totalProduk = 0;
+      cartItems.forEach(item => {
+        totalProduk += item.price * item.quantity;
+      });
+
+      const total = totalProduk + ongkir;
+
+      document.getElementById("total-produk").textContent = `Rp. ${totalProduk.toLocaleString("id-ID")}`;
+      document.getElementById("ongkir").textContent = `Rp. ${ongkir.toLocaleString("id-ID")}`;
+      document.getElementById("total-harga").textContent = `Rp. ${total.toLocaleString("id-ID")}`;
+    }
+
+    async function checkout() {
+      const token = localStorage.getItem('auth_token');
+      if (!token) { showAlert('error','Silakan login'); return; }
+      try {
+        const resp = await API.authFetch('/orders/checkout', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ alamat_kirim: 'Alamat default' }) });
+        if (!resp.ok) {
+          try {
+            const err = await resp.json();
+            if (err && err.error === 'cart_empty') showAlert('error','Keranjang kosong');
+            else if (err && err.error === 'insufficient_stock') showAlert('error','Stok kurang untuk salah satu produk');
+            else if (err && err.error === 'product_missing') showAlert('error','Produk tidak ditemukan');
+            else showAlert('error','Checkout gagal');
+          } catch { showAlert('error','Checkout gagal'); }
+          return;
+        }
+        const data = await resp.json();
+        const metode = document.getElementById('pembayaran').value;
+        const pay = await API.authFetch('/payments', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ pesanan_id: data.pesanan_id, metode }) });
+        if (!pay.ok) { showAlert('error','Gagal membuat pembayaran'); return; }
+        const pr = await pay.json();
+        const totalProduk = cartItems.reduce((s, it) => s + (it.price * it.quantity), 0);
+        const currentOrder = {
+          produk: cartItems.map(it => ({ name: it.name, quantity: it.quantity, price: it.price })),
+          pengiriman: { kurir: namaKurir, ongkos: ongkir },
+          pembayaran: metode,
+          total: totalProduk + ongkir,
+          pesanan_id: data.pesanan_id,
+          pembayaran_id: pr.pembayaran_id
+        };
+        try { localStorage.setItem('currentOrder', JSON.stringify(currentOrder)); } catch {}
+        window.currentPaymentId = pr.pembayaran_id;
+        const btn = document.getElementById('checkoutBtn');
+        btn.textContent = 'Konfirmasi Pembayaran';
+        btn.onclick = function(){ confirmPayment(window.currentPaymentId); };
+        showAlert('success','Pesanan dibuat. Silakan konfirmasi pembayaran.');
+      } catch { showAlert('error','Kesalahan jaringan'); }
+    }
+
+    async function confirmPayment(id) {
+      const token = localStorage.getItem('auth_token');
+      if (!token) { showAlert('error','Silakan login'); return; }
+      try {
+        const resp = await API.authFetch('/payments/' + id + '/confirm', { method:'POST' });
+        if (!resp.ok) { showAlert('error','Konfirmasi pembayaran gagal'); return; }
+        try {
+          const order = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+          order.status_pembayaran = 'sudah_dibayar';
+          localStorage.setItem('currentOrder', JSON.stringify(order));
+        } catch {}
+        window.location.href = 'pembayaran-berhasil.html';
+      } catch { showAlert('error','Kesalahan jaringan'); }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      loadCart();
+    });
+  </script>
+</body>
+</html>

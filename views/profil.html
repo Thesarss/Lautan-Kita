@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil - Lautan Kita</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:'Inter',sans-serif;background:#d6d9ff;margin:0;padding:20px;color:#07304A}
+    .card{max-width:600px;margin:40px auto;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:24px}
+    .row{display:flex;gap:16px;align-items:center}
+    .avatar{width:72px;height:72px;border-radius:50%;object-fit:cover}
+    .title{font-size:20px;font-weight:700;margin:0}
+    .subtitle{color:#64748B;margin:4px 0 16px}
+    .btn{background:#0077B6;color:#fff;border:none;border-radius:8px;padding:10px 16px;cursor:pointer}
+    .danger{background:#EF4444}
+    .grid{display:grid;grid-template-columns:180px 1fr;gap:8px;margin-top:12px}
+    .label{color:#64748B}
+    .value{font-weight:600}
+  </style>
+  <script>
+    const API_BASE='http://localhost:4000';
+    async function loadProfile(){
+      const token=localStorage.getItem('auth_token');
+      if(!token){window.location.href='../../login.html';return}
+      try{
+        const resp=await fetch(API_BASE+'/auth/me',{headers:{Authorization:'Bearer '+token}});
+        if(!resp.ok){alert('Gagal memuat profil');return}
+        const u=await resp.json();
+        document.getElementById('nama').textContent=u.nama||'-';
+        document.getElementById('email').textContent=u.email||'-';
+        document.getElementById('role').textContent=u.role||'-';
+        document.getElementById('verified').textContent=Number(u.verified)?'Ya':'Tidak';
+      }catch{alert('Kesalahan jaringan')}
+    }
+    function back(){window.location.href='../../home_final.html'}
+    function logout(){localStorage.removeItem('auth_token');window.location.href='../../login.html'}
+    document.addEventListener('DOMContentLoaded',loadProfile);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="row">
+      <img src="../../img/pembeli.png" class="avatar" alt="Avatar">
+      <div>
+        <h2 class="title">Profil Pengguna</h2>
+        <p class="subtitle">Lihat data akun Anda</p>
+        <button class="btn" onclick="back()">Kembali</button>
+        <button class="btn danger" onclick="logout()" style="margin-left:8px">Logout</button>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="label">Nama</div><div class="value" id="nama">-</div>
+      <div class="label">Email</div><div class="value" id="email">-</div>
+      <div class="label">Peran</div><div class="value" id="role">-</div>
+      <div class="label">Terverifikasi</div><div class="value" id="verified">-</div>
+    </div>
+  </div>
+</body>
+</html>

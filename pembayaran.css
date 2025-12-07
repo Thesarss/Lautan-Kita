@@ -1,0 +1,58 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f0f7fc;
+  margin: 0;
+  padding: 0;
+  color: #1e2d3b;
+}
+
+.container {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.back-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: #e0f2ff;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+}
+
+.payment-img {
+  width: 220px;
+  margin-top: 60px;
+}
+
+h1 {
+  font-size: 26px;
+  margin-top: 20px;
+  color: #0c3c60;
+}
+
+.subtitle {
+  color: #4b6a84;
+  font-size: 16px;
+}
+
+.info-box {
+  background-color: #eaf6ff;
+  border: 1px solid #c9e6ff;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 30px auto;
+  width: 90%;
+  max-width: 500px;
+}
+
+.link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #0073e6;
+  text-decoration: underline;
+}
