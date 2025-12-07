@@ -5,10 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ikan Belanak - Lautan Kita</title>
     <link rel="stylesheet" href="Desktop2style.css" />
-</head>
+    <script src="assets/js/api.js"></script>
+  </head>
 <body>
     <div class="container">
         <a class="back-button" href="home_final.html">⬅️</a>
+        <div class="info-card" id="accountCard" style="max-width:480px;margin:12px auto 20px;">
+            <h3 style="margin:0 0 8px;">Akun</h3>
+            <div id="accountMini" style="display:flex;flex-direction:column;gap:6px;">
+                <div id="accountName" class="review-name"></div>
+                <div id="accountEmail" class="review-text"></div>
+                <div id="accountRole" class="review-text" style="font-weight:600"></div>
+                <div id="accountDesc" class="review-text" style="color:#4b6a84"></div>
+                <div style="display:flex;gap:10px;margin-top:10px;">
+                    <button id="profilBtn" class="visit-button">Profil</button>
+                    <button id="logoutBtn" class="buy-button" style="background:#e74c3c;">Logout</button>
+                </div>
+            </div>
+        </div>
 
         <section class="product-section">
             <div class="image-wrapper">
@@ -109,7 +123,55 @@
     </footer>
 
     <script>
-                // SALIN SEMUA KODE DI BAWAH INI
+        function renderAccountMini() {
+            var token = localStorage.getItem('auth_token');
+            var base = window.API_BASE || 'http://localhost:4000';
+            var nameEl = document.getElementById('accountName');
+            var emailEl = document.getElementById('accountEmail');
+            var roleEl = document.getElementById('accountRole');
+            var descEl = document.getElementById('accountDesc');
+            var profilBtn = document.getElementById('profilBtn');
+            var logoutBtn = document.getElementById('logoutBtn');
+            var ROLE_INFO = {
+                pembeli: 'Dapat belanja, checkout, dan melacak pesanan.',
+                penjual: 'Dapat membuat produk, mengatur stok/harga, dan melihat pesanan.',
+                admin: 'Dapat moderasi produk, kelola pengguna, dan ubah status pesanan.',
+                kurir: 'Dapat memperbarui status pengiriman dan nomor resi.'
+            };
+            if (!token) {
+                nameEl.textContent = 'Belum login';
+                emailEl.textContent = '';
+                roleEl.textContent = '';
+                descEl.textContent = 'Masuk untuk melihat detail akun.';
+                profilBtn.onclick = function(){ window.location.href = 'login.html'; };
+                logoutBtn.style.display = 'none';
+                return;
+            }
+            fetch(base + '/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+                .then(function(r){ if (!r.ok) return null; return r.json(); })
+                .then(function(me){
+                    if (!me) {
+                        nameEl.textContent = 'Akun';
+                        descEl.textContent = 'Tidak dapat memuat detail akun.';
+                        logoutBtn.style.display = 'inline-block';
+                        logoutBtn.onclick = function(){ localStorage.removeItem('auth_token'); window.location.href = 'home_final.html'; };
+                        profilBtn.onclick = function(){ window.location.href = 'views/profil.html'; };
+                        return;
+                    }
+                    nameEl.textContent = me.nama || me.name || 'Pengguna';
+                    emailEl.textContent = me.email || '';
+                    roleEl.textContent = (me.role || '').toUpperCase();
+                    descEl.textContent = ROLE_INFO[me.role] || '';
+                    profilBtn.onclick = function(){ window.location.href = 'views/profil.html'; };
+                    logoutBtn.onclick = function(){ localStorage.removeItem('auth_token'); window.location.href = 'home_final.html'; };
+                })
+                .catch(function(){
+                    nameEl.textContent = 'Akun';
+                    descEl.textContent = 'Kesalahan jaringan saat memuat akun.';
+                    profilBtn.onclick = function(){ window.location.href = 'views/profil.html'; };
+                    logoutBtn.onclick = function(){ localStorage.removeItem('auth_token'); window.location.href = 'home_final.html'; };
+                });
+        }
         window.onload = function() {
             // 1. Ambil ID produk dari URL
             const params = new URLSearchParams(window.location.search);
@@ -127,7 +189,7 @@
 
             // Jika produk dengan ID tersebut tidak ditemukan, kembali ke halaman utama
             if (!product) {
-                alert('Produk tidak ditemukan!');
+                API.showModal({ title: 'Produk', message: 'Produk tidak ditemukan!' });
                 window.location.href = 'home_final.html';
                 return;
             }
@@ -203,6 +265,7 @@
                 // OPSI LAIN: jika ingin menampilkan pesan, ganti baris di atas dengan ini:
                 // userReviewCard.innerHTML = '<h3>Ulasan Pembeli</h3><p>Belum ada ulasan untuk produk ini.</p>';
             }
+            renderAccountMini();
         };
     </script>
 </body>

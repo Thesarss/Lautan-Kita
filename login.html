@@ -145,7 +145,9 @@
     .forgot-password a:hover {
       text-decoration: underline;
     }
+    
   </style>
+  <script src="assets/js/api.js"></script>
 </head>
 <body>
   <div class="container">
@@ -180,6 +182,7 @@
       </div>
     </form>
   </div>
+  
 
   <script>
     const script = document.createElement('script');
@@ -200,6 +203,7 @@
       const form = document.getElementById('loginForm');
       
       const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+      
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
         let isValid = true;
@@ -231,15 +235,14 @@
               body: JSON.stringify({ email, password })
             });
             if (!resp.ok) {
-              alert('Login gagal');
+              API.showModal({ title: 'Login', message: 'Login gagal.' });
               return;
             }
             const data = await resp.json();
             localStorage.setItem('auth_token', data.token);
-            alert('Login berhasil!');
-            window.location.href = 'home_final.html';
+            API.showModal({ title: 'Login', message: 'Login berhasil!', actions: [{ label: 'Ke Beranda', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'home_final.html'; } }] });
           } catch {
-            alert('Terjadi kesalahan jaringan');
+            API.showModal({ title: 'Jaringan', message: 'Terjadi kesalahan jaringan.' });
           }
         }
       });

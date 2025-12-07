@@ -18,7 +18,7 @@ router.get('/carts', requireAuth, requireRole(['pembeli']), async (req, res) => 
   try {
     const cartId = await ensureCart(conn, req.user.id);
     const [items] = await conn.query(
-      'SELECT i.item_id,i.jumlah,p.produk_id,p.nama_produk,p.harga,p.stok,(i.jumlah*p.harga) AS subtotal FROM keranjang_item i JOIN produk p ON p.produk_id=i.produk_id WHERE i.keranjang_id=?',
+      'SELECT i.item_id,i.jumlah,p.produk_id,p.nama_produk,p.harga,p.stok,p.penjual_id,u.nama AS penjual_nama,(i.jumlah*p.harga) AS subtotal FROM keranjang_item i JOIN produk p ON p.produk_id=i.produk_id LEFT JOIN user u ON u.user_id=p.penjual_id WHERE i.keranjang_id=?',
       [cartId]
     );
     const total = items.reduce((s, it) => s + Number(it.subtotal || 0), 0);

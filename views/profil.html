@@ -18,6 +18,7 @@
     .label{color:#64748B}
     .value{font-weight:600}
   </style>
+  <script src="../../assets/js/api.js"></script>
   <script>
     const API_BASE='http://localhost:4000';
     async function loadProfile(){
@@ -25,23 +26,77 @@
       if(!token){window.location.href='../../login.html';return}
       try{
         const resp=await fetch(API_BASE+'/auth/me',{headers:{Authorization:'Bearer '+token}});
-        if(!resp.ok){alert('Gagal memuat profil');return}
+        if(!resp.ok){API.showModal({ title: 'Profil', message: 'Gagal memuat profil' });return}
         const u=await resp.json();
         document.getElementById('nama').textContent=u.nama||'-';
         document.getElementById('email').textContent=u.email||'-';
         document.getElementById('role').textContent=u.role||'-';
         document.getElementById('verified').textContent=Number(u.verified)?'Ya':'Tidak';
-      }catch{alert('Kesalahan jaringan')}
+        if (u.avatar_url) document.getElementById('avatarImg').src = API.base + u.avatar_url;
+      }catch{API.showModal({ title: 'Jaringan', message: 'Kesalahan jaringan' })}
+    }
+    async function saveProfile(){
+      const token=localStorage.getItem('auth_token');
+      if(!token){API.showModal({title:'Login',message:'Silakan login kembali'});return}
+      const nama = document.getElementById('i_nama').value.trim();
+      const email= document.getElementById('i_email').value.trim();
+      try{
+        const resp = await fetch(API_BASE+'/auth/me',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body: JSON.stringify({ nama: nama || undefined, email: email || undefined })});
+        if(!resp.ok){
+          const err = await resp.json().catch(()=>({}));
+          if(err && err.error==='email_exists'){ API.showModal({title:'Profil',message:'Email sudah digunakan'}); return; }
+          API.showModal({title:'Profil',message:'Gagal menyimpan perubahan'}); return;
+        }
+        const u = await resp.json();
+        document.getElementById('nama').textContent=u.nama||'-';
+        document.getElementById('email').textContent=u.email||'-';
+        API.showModal({title:'Profil',message:'Perubahan tersimpan'});
+      }catch{ API.showModal({title:'Jaringan',message:'Kesalahan jaringan'}) }
+    }
+    function previewAvatar(e){
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(){ document.getElementById('avatarImg').src = reader.result; };
+      reader.readAsDataURL(file);
+    }
+    function saveAvatar(){
+      const img = document.getElementById('avatarImg').src;
+      try{ localStorage.setItem('profile_avatar', img); API.showModal({title:'Profil',message:'Foto profil disimpan di perangkat'}); }catch{ API.showModal({title:'Profil',message:'Gagal menyimpan foto'}) }
+    }
+    function applyAvatarFromStorage(){
+      const url = localStorage.getItem('profile_avatar');
+      if(url) document.getElementById('avatarImg').src = url;
+    }
+    async function saveAvatar(){
+      const input = document.getElementById('i_avatar');
+      const file = input.files && input.files[0];
+      if(!file){ API.showModal({title:'Profil',message:'Pilih foto terlebih dahulu'}); return; }
+      const reader = new FileReader();
+      reader.onload = async function(){
+        const token=localStorage.getItem('auth_token');
+        try {
+          const resp = await fetch(API_BASE+'/auth/avatar',{ method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ image: reader.result }) });
+          if(!resp.ok){
+            try{ const err = await resp.json(); API.showModal({title:'Profil',message: (err && err.error) || 'Gagal mengunggah foto'}); }catch{ API.showModal({title:'Profil',message:'Gagal mengunggah foto'}) }
+            return;
+          }
+          const r = await resp.json();
+          document.getElementById('avatarImg').src = API.base + r.avatar_url;
+          API.showModal({title:'Profil',message:'Foto profil tersimpan'});
+        } catch { API.showModal({title:'Jaringan',message:'Kesalahan jaringan'}) }
+      };
+      reader.readAsDataURL(file);
     }
     function back(){window.location.href='../../home_final.html'}
     function logout(){localStorage.removeItem('auth_token');window.location.href='../../login.html'}
-    document.addEventListener('DOMContentLoaded',loadProfile);
+    document.addEventListener('DOMContentLoaded',function(){ loadProfile(); });
   </script>
 </head>
 <body>
   <div class="card">
     <div class="row">
-      <img src="../../img/pembeli.png" class="avatar" alt="Avatar">
+      <img id="avatarImg" src="../../img/pembeli.png" class="avatar" alt="Avatar">
       <div>
         <h2 class="title">Profil Pengguna</h2>
         <p class="subtitle">Lihat data akun Anda</p>
@@ -55,6 +110,20 @@
       <div class="label">Peran</div><div class="value" id="role">-</div>
       <div class="label">Terverifikasi</div><div class="value" id="verified">-</div>
     </div>
+    <div class="grid" style="margin-top:16px">
+      <div class="label">Ubah Nama</div>
+      <div><input id="i_nama" type="text" placeholder="Nama baru" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px"></div>
+      <div class="label">Ubah Email</div>
+      <div><input id="i_email" type="email" placeholder="Email baru" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px"></div>
+    </div>
+    <div class="grid" style="margin-top:16px">
+      <div class="label">Ubah Foto Profil</div>
+      <div>
+        <input id="i_avatar" type="file" accept="image/*" style="width:100%" onchange="previewAvatar(event)">
+        <small class="subtitle">Unggah gambar JPG/PNG</small>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px"><button class="btn" onclick="saveProfile()">Simpan Perubahan</button><button class="btn" style="background:#0ea5e9" onclick="saveAvatar()">Simpan Foto</button></div>
   </div>
 </body>
 </html>

@@ -34,6 +34,7 @@
     .alert.error { background-color: #ff4444;}
     .alert.success { background-color: #00C851;}
     .alert.fade-out { opacity: 0;}
+    
     @media (max-width: 600px) {
       .product-container { flex-direction: column; }
       .product-image-container { width: 100%; text-align: center;}
@@ -52,10 +53,10 @@
     </div>
 
     <div class="user-info">
-      <img src="img/pembeli.png" alt="Foto Pembeli">
+      <img id="userAvatar" src="img/pembeli.png" alt="Foto Pembeli">
       <div>
-        <strong>Santi</strong><br>
-        <small>082294172833 · Bt 9, Rumah warna hijau</small>
+        <strong id="userName">Akun</strong><br>
+        <small id="userSubtitle">Masuk untuk melihat detail</small>
       </div>
     </div>
 
@@ -92,6 +93,7 @@
 
     <button class="checkout-btn" id="checkoutBtn" onclick="checkout()">Checkout</button>
   </div>
+  
 
   <script>
     // Fungsi tambah ke keranjang (bisa dipanggil dari halaman lain)
@@ -112,7 +114,7 @@
         });
       }
       localStorage.setItem('cart_checkout', JSON.stringify(cart));
-      alert('Produk ditambahkan ke keranjang!');
+      API.showModal({ title: 'Keranjang', message: 'Produk ditambahkan ke keranjang!', actions: [{ label: 'Lihat Keranjang', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'keranjang.html'; } }] });
     }
 
     // Daftar produk referensi
@@ -204,6 +206,7 @@
         setTimeout(() => alertBox.remove(), 500);
       }, 3000);
     }
+    
 
     async function loadCart() {
       const token = localStorage.getItem('auth_token');
@@ -212,7 +215,7 @@
         const resp = await API.authFetch('/carts');
         if (!resp.ok) { document.getElementById("produk-container").innerHTML = "<div style='text-align:center;color:#888'>Gagal memuat keranjang</div>"; return; }
         const data = await resp.json();
-        cartItems = (data.items || []).map(it => ({ id: it.produk_id, name: it.nama_produk, image: 'img/logo.png', price: Number(it.harga || 0), quantity: Number(it.jumlah || 0), item_id: it.item_id, stock: Number(it.stok || 0) }));
+        cartItems = (data.items || []).map(it => ({ id: it.produk_id, name: it.nama_produk, image: 'img/logo.png', price: Number(it.harga || 0), quantity: Number(it.jumlah || 0), item_id: it.item_id, stock: Number(it.stok || 0), penjual_nama: it.penjual_nama }));
         renderCartProducts();
       } catch { document.getElementById("produk-container").innerHTML = "<div style='text-align:center;color:#888'>Kesalahan jaringan</div>"; }
     }
@@ -223,9 +226,9 @@
       let sellerSet = new Set();
 
       cartItems.forEach((item, index) => {
-        // Ambil data produk jika tersedia, jika tidak gunakan data dari cart
         const product = products[item.id] || item;
-        sellerSet.add(product.seller || "-");
+        const sellerName = item.penjual_nama || product.seller || "-";
+        sellerSet.add(sellerName);
 
         const jumlah = item.quantity;
         const card = document.createElement('div');
@@ -237,6 +240,7 @@
             </div>
             <div class="product-info-container">
               <h3>${product.name}</h3>
+              <div style="color:#4b6a84;margin:4px 0 10px"><small>Penjual: ${sellerName}</small></div>
               <p style="color:#555; margin-top:-10px; margin-bottom:12px;">${product.description || ""}</p>
               <p>Hasil laut segar hasil tangkapan nelayan lokal. Cocok untuk berbagai jenis masakan khas Indonesia.</p>
               <strong>Rp. ${product.price.toLocaleString('id-ID')}</strong>
@@ -319,7 +323,7 @@
         const pr = await pay.json();
         const totalProduk = cartItems.reduce((s, it) => s + (it.price * it.quantity), 0);
         const currentOrder = {
-          produk: cartItems.map(it => ({ name: it.name, quantity: it.quantity, price: it.price })),
+          produk: cartItems.map(it => ({ name: it.name, quantity: it.quantity, price: it.price, seller: it.penjual_nama || '-' })),
           pengiriman: { kurir: namaKurir, ongkos: ongkir },
           pembayaran: metode,
           total: totalProduk + ongkir,
@@ -330,9 +334,23 @@
         window.currentPaymentId = pr.pembayaran_id;
         const btn = document.getElementById('checkoutBtn');
         btn.textContent = 'Konfirmasi Pembayaran';
-        btn.onclick = function(){ confirmPayment(window.currentPaymentId); };
-        showAlert('success','Pesanan dibuat. Silakan konfirmasi pembayaran.');
+        btn.onclick = function(){ confirmPaymentPrompt(window.currentPaymentId); };
+        API.showModal({
+          title: 'Pesanan Dibuat',
+          message: 'Silakan lanjutkan pembayaran kemudian konfirmasi.',
+          actions: [{ label: 'Oke', variant: 'primary', handler: API.hideModal }]
+        });
       } catch { showAlert('error','Kesalahan jaringan'); }
+    }
+    function confirmPaymentPrompt(id){
+      API.showModal({
+        title: 'Konfirmasi Pembayaran',
+        message: 'Apakah pembayaran telah dilakukan?',
+        actions: [
+          { label: 'Belum', variant: 'secondary', handler: API.hideModal },
+          { label: 'Sudah, Konfirmasi', variant: 'primary', handler: function(){ API.hideModal(); confirmPayment(id); } }
+        ]
+      });
     }
 
     async function confirmPayment(id) {
@@ -346,12 +364,34 @@
           order.status_pembayaran = 'sudah_dibayar';
           localStorage.setItem('currentOrder', JSON.stringify(order));
         } catch {}
-        window.location.href = 'pembayaran-berhasil.html';
+        API.showModal({
+          title: 'Pembayaran Berhasil',
+          message: 'Terima kasih. Pembayaran Anda telah dikonfirmasi.',
+          actions: [{ label: 'Lihat Ringkasan', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'pembayaran-berhasil.html'; } }]
+        });
       } catch { showAlert('error','Kesalahan jaringan'); }
+    }
+
+    async function loadUserAvatar(){
+      const token = localStorage.getItem('auth_token');
+      const img = document.getElementById('userAvatar');
+      if (!img) return;
+      if (!token) { img.src = 'img/pembeli.png'; return; }
+      try {
+        const resp = await API.authFetch('/auth/me');
+        if (!resp.ok) { img.src = 'img/pembeli.png'; return; }
+        const u = await resp.json();
+        img.src = u.avatar_url ? (API.base + u.avatar_url) : 'img/pembeli.png';
+        const nameEl = document.getElementById('userName');
+        const subEl = document.getElementById('userSubtitle');
+        if (nameEl) nameEl.textContent = u.nama || 'Akun';
+        if (subEl) subEl.textContent = (u.email || '') + (u.role ? (' · ' + u.role) : '');
+      } catch { img.src = 'img/pembeli.png'; }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
       loadCart();
+      loadUserAvatar();
     });
   </script>
 </body>

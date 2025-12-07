@@ -13,7 +13,10 @@
       --body-bg: #EFF6FF;
       --price-color: #0077B6;
     }
+    
+    .btn-secondary { background: #e5e7eb; color: #111827; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; }
   </style>
+  <script src="assets/js/api.js"></script>
 </head>
 <body class="min-h-screen flex flex-col" style="background-color: var(--body-bg);">
 
@@ -33,6 +36,7 @@
   <div class="flex-1 p-4 space-y-4" id="cartItemsContainer">
     <!-- Produk akan dimuat secara dinamis -->
   </div>
+  
 
   <!-- Footer -->
   <div class="p-4 text-white flex justify-between items-center" style="background-color: var(--primary-bg);">
@@ -100,9 +104,9 @@
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify({ jumlah })
         });
-        if (!resp.ok) { alert('Gagal memperbarui jumlah'); return; }
+        if (!resp.ok) { API.showModal({ title: 'Keranjang', message: 'Gagal memperbarui jumlah.' }); return; }
         loadCartBackend();
-      } catch { alert('Kesalahan jaringan'); }
+      } catch { API.showModal({ title: 'Jaringan', message: 'Kesalahan jaringan.' }); }
     }
 
     async function hapusItemBackend(itemId) {
@@ -112,9 +116,9 @@
           method: 'DELETE',
           headers: { Authorization: 'Bearer ' + token }
         });
-        if (!resp.ok) { alert('Gagal menghapus item'); return; }
+        if (!resp.ok) { API.showModal({ title: 'Keranjang', message: 'Gagal menghapus item.' }); return; }
         loadCartBackend();
-      } catch { alert('Kesalahan jaringan'); }
+      } catch { API.showModal({ title: 'Jaringan', message: 'Kesalahan jaringan.' }); }
     }
   </script>
 </body>

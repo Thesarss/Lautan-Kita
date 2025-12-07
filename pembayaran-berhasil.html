@@ -9,6 +9,10 @@
 <body>
   <div class="container">
     <button class="back-btn" onclick="window.location.href='home_final.html'">←</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+      <img id="userAvatarPay" src="img/pembeli.png" alt="Avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover">
+      <span style="color:#07304A;font-weight:600">Akun Anda</span>
+    </div>
 
 
     <img src="img/assetspayment-success.png" alt="Pembayaran Berhasil" class="payment-img" />
@@ -22,5 +26,19 @@
       <a href="rincian-pesanan.html" class="link">Lihat rincian pesanan</a>
     </div>
   </div>
+  <script src="assets/js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async function(){
+      const img = document.getElementById('userAvatarPay');
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+      try{
+        const resp = await API.authFetch('/auth/me');
+        if (!resp.ok) return;
+        const u = await resp.json();
+        if (u.avatar_url) img.src = API.base + u.avatar_url;
+      }catch{}
+    });
+  </script>
 </body>
 </html>

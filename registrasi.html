@@ -130,7 +130,9 @@
       cursor: pointer;
       color: #64748B;
     }
+    
   </style>
+  <script src="assets/js/api.js"></script>
 </head>
 <body>
   <div class="container">
@@ -169,6 +171,14 @@
         </div>
         <div class="error-message" id="confirmPasswordError">Password tidak sama</div>
       </div>
+      <div class="form-group">
+        <label for="role">Peran Akun</label>
+        <select id="role" name="role" style="width:100%;padding:12px 15px;border:1px solid #93C5FD;border-radius:8px">
+          <option value="pembeli" selected>Pembeli</option>
+          <option value="penjual">Nelayan / Penjual</option>
+          <option value="kurir">Kurir</option>
+        </select>
+      </div>
       
       <button type="submit" class="btn btn-primary">Daftar</button>
       
@@ -177,6 +187,7 @@
       </div>
     </form>
   </div>
+  
 
   <script>
     const script = document.createElement('script');
@@ -205,6 +216,7 @@
       const form = document.getElementById('registerForm');
       
       const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+      
       form.addEventListener('submit', async function(e) {
         e.preventDefault();
         let isValid = true;
@@ -248,21 +260,21 @@
         
         if (isValid) {
           try {
+            const roleSel = document.getElementById('role').value;
             const resp = await fetch(API_BASE + '/auth/register', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ nama: name, email, password, role: 'pembeli' })
+              body: JSON.stringify({ nama: name, email, password, role: roleSel })
             });
             if (!resp.ok) {
-              alert('Pendaftaran gagal');
+              API.showModal({ title: 'Pendaftaran', message: 'Pendaftaran gagal.' });
               return;
             }
             const data = await resp.json();
             localStorage.setItem('auth_token', data.token);
-            alert('Pendaftaran berhasil!');
-            window.location.href = 'home_final.html';
+            API.showModal({ title: 'Pendaftaran', message: 'Pendaftaran berhasil!', actions: [{ label: 'Ke Beranda', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'home_final.html'; } }] });
           } catch {
-            alert('Terjadi kesalahan jaringan');
+            API.showModal({ title: 'Jaringan', message: 'Terjadi kesalahan jaringan.' });
           }
         }
       });

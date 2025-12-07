@@ -43,7 +43,7 @@ router.get('/shipments/:orderId', requireAuth, [param('orderId').isInt({ min: 1 
   }
 });
 
-router.patch('/shipments/:id/status', requireAuth, requireRole(['admin','penjual']), [
+router.patch('/shipments/:id/status', requireAuth, requireRole(['admin','penjual','kurir']), [
   param('id').isInt({ min: 1 }),
   body('status_kirim').isIn(['diproses','dikirim','diterima']),
   body('no_resi').optional().isString().isLength({ min: 3, max: 100 }).trim()

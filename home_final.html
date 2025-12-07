@@ -66,7 +66,7 @@
       margin-bottom: 15px;
       color: #F0F9FF; /*langsung dari laut*/
     }
-    header p {
+  header p {
       font-size: 1.2rem;
       color: #F0F9FF;/*temukan tangkapan*/
       font-weight: 500;
@@ -538,7 +538,7 @@
         <button onclick="window.location.href='keranjang.html'" class="relative"><i class="fas fa-shopping-cart"></i> 
           <span class="cart-counter absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" style="display: none;">0</span>
         </button>
-        <img src="img/pembeli.png" alt="Profil" onclick="toggleProfileMenu()">
+        <img id="navbarAvatar" src="img/pembeli.png" alt="Profil" onclick="toggleProfileMenu()">
       </div>
     </div>
     <h2>Langsung dari Laut ke Meja Makanmu</h2>
@@ -956,9 +956,21 @@
 </div>
 <div id="profileMenu" class="modal">
   <h3>Akun</h3>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <img id="accountAvatar" src="img/pembeli.png" alt="Avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div id="accountName" class="review-name"></div>
+      <div id="accountEmail" class="review-text"></div>
+      <div id="accountRole" class="review-text" style="font-weight:600"></div>
+    </div>
+  </div>
+  <div id="accountDesc" class="review-text" style="color:#4b6a84;margin-bottom:10px"></div>
   <button class="recipe-btn" onclick="goProfile()">Profil</button>
+  <button id="btnAddProduct" class="recipe-btn" style="display:none" onclick="openSellerModal()">Tambah Produk</button>
   <button class="close-btn" onclick="logout()">Logout</button>
+  <div style="margin-top:8px;font-size:12px;color:#4b6a84">Jika belum login, klik Profil untuk masuk.</div>
 </div>
+ 
 <script>
   // DATA PRODUK LENGKAP DENGAN KATEGORI
   const apiScript=document.createElement('script'); apiScript.src='assets/js/api.js'; document.head.appendChild(apiScript);
@@ -1104,6 +1116,21 @@
     }
   }
 
+  function fallbackImage(p){
+    const name = (p.nama_produk || p.name || '').toLowerCase();
+    const cat = (p.kategori || p.category || '').toLowerCase();
+    const idNum = parseInt(p.produk_id, 10);
+    const ikanImgs = ['img/ikan-belanak.png','img/ikan-puri.png','img/ikan-tongkol.png','img/ikan-kakap.png'];
+    if (name.includes('udang') || cat==='udang') return 'img/udang.png';
+    if (name.includes('kepiting') || cat==='kepiting') return 'img/kepiting.png';
+    if (name.includes('sotong') || cat==='sotong') return 'img/sotong.png';
+    if (name.includes('kakap')) return 'img/ikan-kakap.png';
+    if (name.includes('tongkol')) return 'img/ikan-tongkol.png';
+    if (name.includes('belanak')) return 'img/ikan-belanak.png';
+    const idx = isNaN(idNum) ? Math.floor((name.charCodeAt(0)||0) % ikanImgs.length) : (idNum % ikanImgs.length);
+    return ikanImgs[idx];
+  }
+
   async function fetchBackendProducts() {
     try {
       const resp = await fetch(API_BASE + '/products');
@@ -1113,12 +1140,14 @@
       if (!container) return;
       container.innerHTML = '';
       list.forEach(p => {
+        const photo = p.photo_url ? (API_BASE + p.photo_url) : fallbackImage(p);
+        const cat = (p.kategori || p.category || 'ikan');
         const card = document.createElement('div');
         card.className = 'card';
-        card.dataset.category = 'ikan';
+        card.dataset.category = cat;
         card.innerHTML = `
           <div class="image-container">
-            <img src="${p.photo_url || 'img/ikan-belanak.png'}" alt="${p.nama_produk || p.name || ''}" class="product-image">
+            <img src="${photo}" alt="${p.nama_produk || p.name || ''}" class="product-image">
             <span class="badge">${(p.stok ?? 0) > 10 ? 'Baru ditangkap' : 'Disimpan dalam es'}</span>
           </div>
           <div class="product-info">
@@ -1141,6 +1170,7 @@
   function toggleProfileMenu(){
     const el = document.getElementById('profileMenu');
     if (!el) return; el.classList.toggle('active');
+    if (el.classList.contains('active')) loadAccountInfo();
   }
   function logout(){
     localStorage.removeItem('auth_token');
@@ -1150,13 +1180,106 @@
     window.location.href = 'views/profil.html';
   }
 
+ 
+
+  function loadAccountInfo(){
+    const token = localStorage.getItem('auth_token');
+    const nameEl = document.getElementById('accountName');
+    const emailEl = document.getElementById('accountEmail');
+    const roleEl = document.getElementById('accountRole');
+    const descEl = document.getElementById('accountDesc');
+    const avatarEl = document.getElementById('accountAvatar');
+    const navAvatar = document.getElementById('navbarAvatar');
+    const ROLE_INFO = {
+      pembeli: 'Dapat belanja, checkout, dan melacak pesanan.',
+      penjual: 'Dapat membuat produk, mengatur stok/harga, dan melihat pesanan.',
+      admin: 'Dapat moderasi produk, kelola pengguna, dan ubah status pesanan.',
+      kurir: 'Dapat memperbarui status pengiriman dan nomor resi.'
+    };
+    if (!nameEl || !emailEl || !roleEl || !descEl) return;
+    if (!token) {
+      nameEl.textContent = 'Belum login';
+      emailEl.textContent = '';
+      roleEl.textContent = '';
+      descEl.textContent = 'Masuk untuk melihat detail akun.';
+      if (avatarEl) avatarEl.src = 'img/pembeli.png';
+      if (navAvatar) navAvatar.src = 'img/pembeli.png';
+      return;
+    }
+    fetch(API_BASE + '/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(me => {
+        if (!me) {
+          nameEl.textContent = 'Akun';
+          emailEl.textContent = '';
+          roleEl.textContent = '';
+          descEl.textContent = 'Tidak dapat memuat detail akun.';
+          if (avatarEl) avatarEl.src = 'img/pembeli.png';
+          if (navAvatar) navAvatar.src = 'img/pembeli.png';
+          return;
+        }
+        nameEl.textContent = me.nama || me.name || 'Pengguna';
+        emailEl.textContent = me.email || '';
+        roleEl.textContent = (me.role || '').toUpperCase();
+        descEl.textContent = ROLE_INFO[me.role] || '';
+        const url = me.avatar_url ? (API_BASE + me.avatar_url) : 'img/pembeli.png';
+        if (avatarEl) avatarEl.src = url;
+        if (navAvatar) navAvatar.src = url;
+        const addBtn = document.getElementById('btnAddProduct');
+        if (addBtn) addBtn.style.display = (me.role === 'penjual') ? 'block' : 'none';
+      })
+      .catch(() => {
+        nameEl.textContent = 'Akun';
+        emailEl.textContent = '';
+        roleEl.textContent = '';
+        descEl.textContent = 'Kesalahan jaringan saat memuat akun.';
+        if (avatarEl) avatarEl.src = 'img/pembeli.png';
+        if (navAvatar) navAvatar.src = 'img/pembeli.png';
+      });
+  }
+
+  function openSellerModal(){
+    const m = document.getElementById('sellerFormModal');
+    if (m) m.style.display = 'flex';
+  }
+  function closeSellerModal(){
+    const m = document.getElementById('sellerFormModal');
+    if (m) m.style.display = 'none';
+  }
+  function previewSellerPhoto(){
+    const f = document.getElementById('sp_image');
+    const pv = document.getElementById('sp_preview');
+    if (!f || !f.files || !f.files[0]) { window._sp_image_data = null; if (pv) { pv.style.display='none'; pv.src=''; } return; }
+    const file = f.files[0];
+    const reader = new FileReader();
+    reader.onload = function(){ window._sp_image_data = reader.result; if (pv) { pv.src = reader.result; pv.style.display = 'block'; } };
+    reader.readAsDataURL(file);
+  }
+  async function submitSellerProduct(){
+    const token = localStorage.getItem('auth_token');
+    if (!token) { API.showModal({ title:'Login', message:'Silakan login sebagai penjual' }); return; }
+    const nama = document.getElementById('sp_nama').value.trim();
+    const harga = parseFloat(document.getElementById('sp_harga').value);
+    const stok = parseInt(document.getElementById('sp_stok').value || '0', 10);
+    const deskripsi = document.getElementById('sp_deskripsi').value.trim();
+    const kategori_id = parseInt(document.getElementById('sp_kategori').value || '0', 10) || null;
+    if (!nama || !harga || isNaN(harga)) { API.showModal({ title:'Produk', message:'Nama dan harga wajib diisi' }); return; }
+    try{
+      const resp = await fetch(API_BASE + '/penjual/produk', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ nama_produk:nama, deskripsi, harga, stok, kategori_id, image: window._sp_image_data || undefined }) });
+      if (!resp.ok) { API.showModal({ title:'Produk', message:'Gagal menambah produk' }); return; }
+      closeSellerModal();
+      API.showModal({ title:'Produk', message:'Produk berhasil ditambahkan' });
+      try{ await fetchBackendProducts(); }catch{}
+    }catch{ API.showModal({ title:'Jaringan', message:'Kesalahan jaringan' }); }
+  }
+
   function viewDetail(productId) {
     const product = products[productId];
     if (product) {
       localStorage.setItem('currentProduct', JSON.stringify(product));
       window.location.href = `desktop_2.html?id=${productId}`;
     } else {
-      showAlert('error', 'Produk tidak ditemukan');
+      API.showModal({ title: 'Produk', message: 'Produk tidak ditemukan.' });
     }
   }
 
@@ -1224,7 +1347,7 @@
       }
     });
     if(!found){
-      alert("produk tidak ditemukan");
+      API.showModal({ title: 'Pencarian', message: 'Produk tidak ditemukan.' });
     }
   }
 
@@ -1246,6 +1369,7 @@
     renderFilterCategories();
     renderRekomendasiMenu();
     filterProducts();
+    loadAccountInfo();
     // Perbaiki Event Listener FILTER (pasti aktif)
     document.querySelectorAll('#filterCategories input[type="checkbox"]').forEach(cb => {
       cb.addEventListener('change', filterProducts);
@@ -1349,22 +1473,22 @@
     }
     localStorage.setItem('cart', JSON.stringify(cart));
     updateCartCounter();
-    alert(name + " ditambahkan ke keranjang!");
+    API.showModal({ title: 'Keranjang', message: name + ' ditambahkan ke keranjang', actions: [{ label: 'Lihat Keranjang', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'keranjang.html'; } }] });
   }
 
   async function addToCartBackend(produk_id, jumlah) {
     const token = localStorage.getItem('auth_token');
-    if (!token) { alert('Silakan login terlebih dahulu'); return; }
+    if (!token) { API.showModal({ title: 'Login', message: 'Silakan login terlebih dahulu', actions: [{ label: 'Ke Login', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'login.html'; } }] }); return; }
     try {
       const resp = await fetch(API_BASE + '/carts/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ produk_id, jumlah })
       });
-      if (!resp.ok) { alert('Gagal menambah ke keranjang'); return; }
+      if (!resp.ok) { API.showModal({ title: 'Keranjang', message: 'Gagal menambah ke keranjang' }); return; }
       await updateCartCounter();
-      alert('Produk ditambahkan ke keranjang');
-    } catch { alert('Kesalahan jaringan'); }
+      API.showModal({ title: 'Keranjang', message: 'Produk ditambahkan ke keranjang', actions: [ { label: 'Lanjut Belanja', variant: 'secondary', handler: API.hideModal }, { label: 'Lihat Keranjang', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'keranjang.html'; } } ] });
+    } catch { API.showModal({ title: 'Jaringan', message: 'Kesalahan jaringan' }); }
   }
 
   // EKSPOR FUNGSI UNTUK DIGUNAKAN DI FILE LAIN
@@ -1390,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Perbaiki fungsi addToCart agar update localStorage dan counter dengan benar
-function addToCart(name, price, image) {
+  function addToCart(name, price, image) {
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const existing = cart.find(item => item.name === name);
   if (existing) {
@@ -1400,9 +1524,28 @@ function addToCart(name, price, image) {
   }
   localStorage.setItem('cart', JSON.stringify(cart));
   updateCartCounter();
-  alert(name + " ditambahkan ke keranjang!");
+  API.showModal({ title: 'Keranjang', message: name + ' ditambahkan ke keranjang', actions: [ { label: 'Lanjut Belanja', variant: 'secondary', handler: API.hideModal }, { label: 'Lihat Keranjang', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'keranjang.html'; } } ] });
 }
 </script>
 
 </body>
 </html>
+    
+<div id="sellerFormModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:3000">
+  <div style="background:#fff;border-radius:12px;padding:16px;width:92%;max-width:520px;box-shadow:0 12px 28px rgba(0,0,0,0.2)">
+    <h3 style="margin:0 0 10px;color:#07304A">Tambah Produk Nelayan</h3>
+    <div style="display:grid;grid-template-columns:140px 1fr;gap:8px">
+      <label>Nama Produk</label><input id="sp_nama" type="text" placeholder="contoh: Ikan Kembung" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px">
+      <label>Harga (Rp)</label><input id="sp_harga" type="number" min="0" step="100" placeholder="40000" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px">
+      <label>Stok (kg)</label><input id="sp_stok" type="number" min="0" step="1" placeholder="10" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px">
+      <label>Kategori ID</label><input id="sp_kategori" type="number" min="0" step="1" placeholder="(opsional)" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px">
+      <label>Deskripsi</label><textarea id="sp_deskripsi" rows="3" placeholder="Deskripsi singkat" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px"></textarea>
+      <label>Foto Produk</label><input id="sp_image" type="file" accept="image/*" onchange="previewSellerPhoto()" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px">
+    </div>
+    <img id="sp_preview" src="" alt="" style="width:100%;max-height:180px;object-fit:cover;display:none;margin-top:10px;border:1px solid #cbd5e1;border-radius:8px">
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+      <button onclick="closeSellerModal()" style="background:#e5e7eb;color:#111827;border:none;border-radius:10px;padding:10px 16px;cursor:pointer">Batal</button>
+      <button onclick="submitSellerProduct()" style="background:#0077B6;color:#fff;border:none;border-radius:10px;padding:10px 16px;cursor:pointer">Tambah</button>
+    </div>
+  </div>
+</div>

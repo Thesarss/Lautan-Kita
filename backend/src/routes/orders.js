@@ -81,7 +81,7 @@ router.get('/orders/:id', requireAuth, [param('id').isInt({ min: 1 })], async (r
     if (!o.length) return res.status(404).json({ error: 'not_found' });
     const order = o[0];
     if (order.pembeli_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: 'forbidden' });
-    const [items] = await conn.query('SELECT i.pesanan_item_id,i.produk_id,p.nama_produk,i.harga_saat_beli,i.jumlah,i.subtotal FROM pesanan_item i JOIN produk p ON p.produk_id=i.produk_id WHERE i.pesanan_id=?', [req.params.id]);
+    const [items] = await conn.query('SELECT i.pesanan_item_id,i.produk_id,p.nama_produk,i.harga_saat_beli,i.jumlah,i.subtotal,p.penjual_id,u.nama AS penjual_nama FROM pesanan_item i JOIN produk p ON p.produk_id=i.produk_id LEFT JOIN user u ON u.user_id=p.penjual_id WHERE i.pesanan_id=?', [req.params.id]);
     res.json({ order, items });
   } finally {
     conn.release();
