@@ -535,7 +535,7 @@
       <div class="icons">
         <button onclick="toggleModal('searchModal')"><i class="fas fa-search"></i></button>
         <button onclick="toggleModal('filterModal')"><i class="fas fa-filter"></i></button>
-        <button onclick="window.location.href='keranjang.html'" class="relative"><i class="fas fa-shopping-cart"></i> 
+        <button id="navCartButton" onclick="window.location.href='keranjang.html'" class="relative"><i class="fas fa-shopping-cart"></i> 
           <span class="cart-counter absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center" style="display: none;">0</span>
         </button>
         <img id="navbarAvatar" src="img/pembeli.png" alt="Profil" onclick="toggleProfileMenu()">
@@ -970,7 +970,7 @@
   <button class="close-btn" onclick="logout()">Logout</button>
   <div style="margin-top:8px;font-size:12px;color:#4b6a84">Jika belum login, klik Profil untuk masuk.</div>
 </div>
- 
+
 <script>
   // DATA PRODUK LENGKAP DENGAN KATEGORI
   const apiScript=document.createElement('script'); apiScript.src='assets/js/api.js'; document.head.appendChild(apiScript);
@@ -1145,6 +1145,11 @@
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.category = cat;
+        const isSeller = (window.currentRole === 'penjual');
+        const actions = isSeller
+          ? `<div class="actions"><button class="detail-btn" onclick="viewDetail('${p.produk_id}')"><i class="fas fa-info-circle"></i> Lihat Detail</button><button class="cart-btn" onclick="openStockModal(${p.produk_id}, ${p.stok || 0}, ${p.harga || 0})"><i class='fas fa-box'></i></button></div>`
+          : `<div class="actions"><button class="detail-btn" onclick="viewDetail('${p.produk_id}')"><i class="fas fa-info-circle"></i> Lihat Detail</button><button class="cart-btn" onclick="addToCartBackend(${p.produk_id}, 1)"><i class="fas fa-shopping-cart"></i></button></div>`;
+        const buy = isSeller ? '' : `<button class="buy-btn" onclick="addToCartBackend(${p.produk_id}, 1); window.location.href='checkout.html'">Beli Sekarang</button>`;
         card.innerHTML = `
           <div class="image-container">
             <img src="${photo}" alt="${p.nama_produk || p.name || ''}" class="product-image">
@@ -1156,11 +1161,8 @@
             <p class="price">Rp. ${(p.harga || 0).toLocaleString('id-ID')}/kg</p>
             <p class="stok">Stok: ${p.stok ?? 0} kg</p>
           </div>
-          <div class="actions">
-            <button class="detail-btn" onclick="viewDetail('${p.produk_id}')"><i class="fas fa-info-circle"></i> Lihat Detail</button>
-            <button class="cart-btn" onclick="addToCartBackend(${p.produk_id}, 1)"><i class="fas fa-shopping-cart"></i></button>
-          </div>
-          <button class="buy-btn" onclick="addToCartBackend(${p.produk_id}, 1); window.location.href='checkout.html'">Beli Sekarang</button>
+          ${actions}
+          ${buy}
         `;
         container.appendChild(card);
       });
@@ -1170,6 +1172,10 @@
   function toggleProfileMenu(){
     const el = document.getElementById('profileMenu');
     if (!el) return; el.classList.toggle('active');
+    const sfm = document.getElementById('sellerFormModal');
+    if (sfm) sfm.style.display = 'none';
+    const ssm = document.getElementById('sellerStockModal');
+    if (ssm) ssm.style.display = 'none';
     if (el.classList.contains('active')) loadAccountInfo();
   }
   function logout(){
@@ -1227,6 +1233,9 @@
         if (navAvatar) navAvatar.src = url;
         const addBtn = document.getElementById('btnAddProduct');
         if (addBtn) addBtn.style.display = (me.role === 'penjual') ? 'block' : 'none';
+        window.currentRole = me.role;
+        const navCart = document.getElementById('navCartButton');
+        if (navCart) navCart.style.display = (me.role === 'penjual') ? 'none' : 'inline-block';
       })
       .catch(() => {
         nameEl.textContent = 'Akun';
@@ -1239,8 +1248,42 @@
   }
 
   function openSellerModal(){
+    const pm = document.getElementById('profileMenu');
+    if (pm) pm.classList.remove('active');
+    const ssm = document.getElementById('sellerStockModal');
+    if (ssm) ssm.style.display = 'none';
     const m = document.getElementById('sellerFormModal');
     if (m) m.style.display = 'flex';
+  }
+  function openStockModal(id, stok, harga){
+    const pm = document.getElementById('profileMenu');
+    if (pm) pm.classList.remove('active');
+    const sfm = document.getElementById('sellerFormModal');
+    if (sfm) sfm.style.display = 'none';
+    const m = document.getElementById('sellerStockModal');
+    if (!m) return;
+    document.getElementById('ss_product_id').value = String(id);
+    document.getElementById('ss_stok').value = String(stok || 0);
+    document.getElementById('ss_harga').value = String(harga || 0);
+    m.style.display = 'flex';
+  }
+  function closeStockModal(){
+    const m = document.getElementById('sellerStockModal');
+    if (m) m.style.display = 'none';
+  }
+  async function submitSellerStockUpdate(){
+    const token = localStorage.getItem('auth_token');
+    if (!token) { API.showModal({ title:'Login', message:'Silakan login sebagai penjual' }); return; }
+    const id = parseInt(document.getElementById('ss_product_id').value, 10);
+    const stok = parseInt(document.getElementById('ss_stok').value || '0', 10);
+    const harga = parseFloat(document.getElementById('ss_harga').value || '0');
+    try{
+      const resp = await fetch(API_BASE + '/penjual/produk/' + id, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ stok, harga }) });
+      if (!resp.ok) { API.showModal({ title:'Produk', message:'Gagal memperbarui' }); return; }
+      closeStockModal();
+      API.showModal({ title:'Produk', message:'Perubahan disimpan' });
+      try{ await fetchBackendProducts(); }catch{}
+    }catch{ API.showModal({ title:'Jaringan', message:'Kesalahan jaringan' }); }
   }
   function closeSellerModal(){
     const m = document.getElementById('sellerFormModal');
@@ -1262,11 +1305,15 @@
     const harga = parseFloat(document.getElementById('sp_harga').value);
     const stok = parseInt(document.getElementById('sp_stok').value || '0', 10);
     const deskripsi = document.getElementById('sp_deskripsi').value.trim();
-    const kategori_id = parseInt(document.getElementById('sp_kategori').value || '0', 10) || null;
+    const rawKat = (document.getElementById('sp_kategori').value || '').trim();
+    const kategori_id = rawKat ? parseInt(rawKat, 10) : undefined;
     if (!nama || !harga || isNaN(harga)) { API.showModal({ title:'Produk', message:'Nama dan harga wajib diisi' }); return; }
     try{
       const resp = await fetch(API_BASE + '/penjual/produk', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+token }, body: JSON.stringify({ nama_produk:nama, deskripsi, harga, stok, kategori_id, image: window._sp_image_data || undefined }) });
-      if (!resp.ok) { API.showModal({ title:'Produk', message:'Gagal menambah produk' }); return; }
+      if (!resp.ok) {
+        let msg = 'Gagal menambah produk';
+        try { const err = await resp.json(); if (err && err.error) msg += ` (${err.error})`; } catch {}
+        API.showModal({ title:'Produk', message: msg }); return; }
       closeSellerModal();
       API.showModal({ title:'Produk', message:'Produk berhasil ditambahkan' });
       try{ await fetchBackendProducts(); }catch{}
@@ -1479,6 +1526,7 @@
   async function addToCartBackend(produk_id, jumlah) {
     const token = localStorage.getItem('auth_token');
     if (!token) { API.showModal({ title: 'Login', message: 'Silakan login terlebih dahulu', actions: [{ label: 'Ke Login', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'login.html'; } }] }); return; }
+    if (window.currentRole === 'penjual') { API.showModal({ title: 'Akun Penjual', message: 'Akun penjual tidak menggunakan keranjang. Kelola stok produk Anda.' }); return; }
     try {
       const resp = await fetch(API_BASE + '/carts/items', {
         method: 'POST',
@@ -1515,6 +1563,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Perbaiki fungsi addToCart agar update localStorage dan counter dengan benar
   function addToCart(name, price, image) {
+  if (window.currentRole === 'penjual') { API.showModal({ title:'Akun Penjual', message:'Akun penjual tidak menggunakan keranjang. Kelola stok produk Anda.' }); return; }
   const cart = JSON.parse(localStorage.getItem('cart')) || [];
   const existing = cart.find(item => item.name === name);
   if (existing) {
@@ -1549,3 +1598,18 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </div>
+
+<div id="sellerStockModal" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:3000">
+  <div style="background:#fff;border-radius:12px;padding:16px;width:92%;max-width:420px;box-shadow:0 12px 28px rgba(0,0,0,0.2)">
+    <h3 style="margin:0 0 10px;color:#07304A">Kelola Stok Produk</h3>
+    <input id="ss_product_id" type="hidden" />
+    <label>Stok (kg)</label>
+    <input id="ss_stok" type="number" min="0" step="1" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;width:100%;margin-bottom:8px">
+    <label>Harga (Rp)</label>
+    <input id="ss_harga" type="number" min="0" step="100" style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;width:100%">
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+      <button onclick="closeStockModal()" style="background:#e5e7eb;color:#111827;border:none;border-radius:10px;padding:10px 16px;cursor:pointer">Batal</button>
+      <button onclick="submitSellerStockUpdate()" style="background:#0077B6;color:#fff;border:none;border-radius:10px;padding:10px 16px;cursor:pointer">Simpan</button>
+    </div>
+  </div>
+ </div>

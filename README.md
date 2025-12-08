@@ -70,6 +70,74 @@
 - Pengiriman: buat dan update status pengiriman (`admin/penjual`).
 - Admin: ubah status pesanan, audit log (opsional).
 
+## Status Proyek (per 2025-12-08)
+- Backend API inti selesai dan teruji manual untuk domain: Auth, Produk, Keranjang, Pesanan, Pembayaran, Pengiriman, Admin.
+- Upload gambar selesai: avatar pengguna (`/auth/avatar`) dan foto produk (di `/penjual/produk`). File disajikan via static `GET /uploads/*`.
+- RBAC aktif: middleware mewajibkan peran yang tepat untuk setiap endpoint sensitif.
+- Frontend tersinkron dengan API: beranda mengambil daftar dari `GET /products`, keranjang/checkout terhubung ke backend, profil dan avatar berjalan, registrasi mendukung pemilihan peran.
+- Penjual: dapat menambah produk dengan foto, melihat produk miliknya, serta mengelola stok/harga. Fitur keranjang otomatis dinonaktifkan untuk akun penjual.
+
+## Fungsi/Endpoint Selesai
+- Auth
+  - `POST /auth/register`
+  - `POST /auth/login`
+  - `GET /auth/me`
+  - `PATCH /auth/me`
+  - `POST /auth/avatar`
+- Produk
+  - `GET /products` (kini mengembalikan `photo_url`)
+  - `POST /penjual/produk` (menerima `image` base64 opsional, menyimpan ke `/uploads/products/...`)
+  - `GET /penjual/produk` (daftar produk milik penjual)
+  - `PATCH /penjual/produk/:id` (update stok/harga dan field opsional lain)
+- Keranjang (khusus `pembeli`)
+  - `GET /carts`
+  - `POST /carts/items`
+  - `PATCH /carts/items/:itemId`
+  - `DELETE /carts/items/:itemId`
+- Pesanan
+  - `POST /orders/checkout` (membuat pesanan dari keranjang, mengurangi stok per item)
+  - `GET /orders` (riwayat pesanan pembeli)
+  - `GET /orders/:id` (detail + items, termasuk `penjual_nama`)
+  - `POST /orders/:id/cancel` (rollback stok bila dibatalkan saat status `menunggu`)
+  - `GET /penjual/orders` (daftar pesanan yang berisi produk penjual)
+  - `PATCH /admin/orders/:id/status` (ubah status oleh admin dengan logika restock saat dibatalkan)
+- Pembayaran
+  - `POST /payments` (membuat pembayaran untuk pesanan)
+  - `POST /payments/:id/confirm` (konfirmasi pembayaran; order berpindah ke `diproses`)
+  - `GET /orders/:orderId/payments`
+- Pengiriman
+  - `POST /shipments` (membuat pengiriman; jika tersedia di proyek)
+  - `PATCH /shipments/:id` (kurir/admin mengubah `status_kirim` dan/atau `no_resi`; menandai pesanan `selesai` bila diterima)
+- Admin
+  - `PATCH /admin/users/:id/role` (ganti peran pengguna)
+  - `PATCH /admin/products/:id/status` (aktif/nonaktif)
+  - `PATCH /admin/reviews/:id/status` (aktif/disembunyikan)
+  - Laporan penjualan dan payout: `GET /admin/reports/*`
+
+## Implementasi Frontend Selesai
+- Modal terpusat untuk notifikasi/konfirmasi (ganti semua `alert()` browser).
+- Beranda (`home_final.html`)
+  - Menarik produk dari backend, menampilkan `photo_url` jika ada.
+  - Fallback gambar dinamis berdasarkan nama/kategori bila tidak ada foto.
+  - Tombol aksi beradaptasi dengan peran: untuk `pembeli` ada keranjang/beli, untuk `penjual` tersedia tombol kelola stok.
+  - Form “Tambah Produk Nelayan” dengan input foto + preview, kirim base64 ke backend.
+- Profil (`views/profil.html`)
+  - Menampilkan dan mengedit profil (`PATCH /auth/me`), upload avatar (`POST /auth/avatar`).
+- Registrasi (`registrasi.html`)
+  - Dropdown peran (pembeli/penjual/kurir), validasi dasar.
+- Checkout (`checkout.html`)
+  - Terhubung ke keranjang backend, konfirmasi pembayaran manual.
+
+## Catatan Migrasi/Operasional
+- Startup backend memastikan kolom:
+  - `user.avatar_url` dan `produk.photo_url` dibuat otomatis jika belum ada.
+- Direktori upload:
+  - `backend/uploads/avatars`, `backend/uploads/products` dibuat otomatis.
+
+## Ringkas Cara Coba Fitur Penjual
+- Login sebagai penjual → buka menu Akun → “Tambah Produk” → isi nama/harga/stok/opsional kategori + foto → “Tambah”.
+- Produk tampil di beranda; untuk kelola stok/harga, klik ikon box pada kartu produk.
+
 ## Cara Uji Cepat
 - Login sebagai penjual dan tambahkan produk (`POST /penjual/produk`).
 - Login sebagai pembeli, tambah ke keranjang (`POST /carts/items`).
