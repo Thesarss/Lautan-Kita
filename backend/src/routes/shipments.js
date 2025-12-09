@@ -36,11 +36,19 @@ router.get('/shipments/:orderId', requireAuth, [param('orderId').isInt({ min: 1 
     const [o] = await conn.query('SELECT pembeli_id FROM pesanan WHERE pesanan_id=?', [req.params.orderId]);
     if (!o.length) return res.status(404).json({ error: 'order_not_found' });
     if (o[0].pembeli_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: 'forbidden' });
-    const [rows] = await conn.query('SELECT peneriman_id,pesanan_id,kurir_id,no_resi,status_kirim,updated_at FROM pengiriman WHERE pesanan_id=?', [req.params.orderId]);
+    const [rows] = await conn.query('SELECT g.peneriman_id,g.pesanan_id,g.kurir_id,u.nama AS kurir_nama,g.no_resi,g.status_kirim,g.updated_at FROM pengiriman g LEFT JOIN user u ON u.user_id=g.kurir_id WHERE g.pesanan_id=?', [req.params.orderId]);
     res.json(rows[0] || null);
   } finally {
     conn.release();
   }
+});
+
+router.get('/kurir/shipments', requireAuth, requireRole(['kurir']), async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const [rows] = await conn.query('SELECT peneriman_id,pesanan_id,no_resi,status_kirim,updated_at FROM pengiriman WHERE kurir_id=? ORDER BY updated_at DESC', [req.user.id]);
+    res.json(rows);
+  } finally { conn.release(); }
 });
 
 router.patch('/shipments/:id/status', requireAuth, requireRole(['admin','penjual','kurir']), [

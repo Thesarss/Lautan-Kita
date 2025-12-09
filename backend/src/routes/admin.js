@@ -160,4 +160,27 @@ router.get('/admin/reports/payouts', requireAuth, requireRole(['admin']), [
   }
 });
 
+router.get('/admin/reviews', requireAuth, requireRole(['admin']), [
+  query('status').optional().isIn(['aktif','disembunyikan']),
+  query('q').optional().isString().trim()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const { status, q } = req.query;
+  const conn = await pool.getConnection();
+  try {
+    let sql = 'SELECT r.ulasan_id,r.produk_id,p.nama_produk,u.nama AS user_nama,r.rating,r.komentar,r.status,r.created_at FROM ulasan r JOIN produk p ON p.produk_id=r.produk_id JOIN user u ON u.user_id=r.user_id';
+    const params = [];
+    const conds = [];
+    if (status) { conds.push('r.status=?'); params.push(status); }
+    if (q) { conds.push('(r.komentar LIKE ? OR p.nama_produk LIKE ? OR u.nama LIKE ?)'); params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+    if (conds.length) sql += ' WHERE ' + conds.join(' AND ');
+    sql += ' ORDER BY r.created_at DESC';
+    const [rows] = await conn.query(sql, params);
+    res.json(rows);
+  } finally {
+    conn.release();
+  }
+});
+
 module.exports = router;

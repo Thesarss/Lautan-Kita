@@ -17,7 +17,7 @@ router.get('/products', [
   const conn = await pool.getConnection();
   try {
     const [rows] = await conn.query(
-      'SELECT produk_id,nama_produk,deskripsi,harga,stok,status,tanggal_upload,photo_url FROM produk WHERE status="aktif"'
+      'SELECT p.produk_id,p.nama_produk,p.deskripsi,p.harga,p.stok,p.status,p.tanggal_upload,p.photo_url,u.nama AS penjual_nama FROM produk p LEFT JOIN user u ON u.user_id=p.penjual_id WHERE p.status="aktif"'
     );
     res.json(rows);
   } finally {

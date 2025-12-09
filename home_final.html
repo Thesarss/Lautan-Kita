@@ -1160,6 +1160,8 @@
             <div class="rating"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
             <p class="price">Rp. ${(p.harga || 0).toLocaleString('id-ID')}/kg</p>
             <p class="stok">Stok: ${p.stok ?? 0} kg</p>
+            <p class="seller" style="color:#4b6a84">Penjual: ${p.penjual_nama || '-'}</p>
+            <p class="tgl" style="color:#6b7280">Upload: ${(p.tanggal_upload || '').toString().slice(0,10)}</p>
           </div>
           ${actions}
           ${buy}

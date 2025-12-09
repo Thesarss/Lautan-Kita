@@ -57,6 +57,7 @@
     }
   </style>
 </head>
+<script src="assets/js/api.js"></script>
 <body>
   <div class="container">
     <h1>Rincian Pesanan</h1>
@@ -96,6 +97,22 @@
           <hr>
           <div class="item-row total"><span>Total Bayar</span><span>Rp. ${pesanan.total.toLocaleString('id-ID')}</span></div>
         `;
+
+        // Tambahkan nama kurir dari backend bila tersedia
+        const token = localStorage.getItem('auth_token');
+        if (token && pesanan.pesanan_id) {
+          API.authFetch('/shipments/' + pesanan.pesanan_id)
+            .then(function(r){ return r.ok ? r.json() : null; })
+            .then(function(s){
+              if (s && s.kurir_nama) {
+                const cont = document.getElementById("pesanan-container");
+                const extra = document.createElement('div');
+                extra.className = 'item-row';
+                extra.innerHTML = `<span>Kurir (Tanggung Jawab)</span><span>${s.kurir_nama}</span>`;
+                cont.insertBefore(extra, cont.querySelector('.total'));
+              }
+            }).catch(function(){});
+        }
       } else {
         document.getElementById("pesanan-container").innerHTML = "<p>Data pesanan tidak ditemukan.</p>";
       }
