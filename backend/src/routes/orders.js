@@ -55,7 +55,7 @@ router.post('/orders/checkout', requireAuth, requireRole(['pembeli']), [
     await conn.commit();
     res.status(201).json({ pesanan_id: orderId, total });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
   } finally {
     conn.release();
@@ -67,6 +67,42 @@ router.get('/orders', requireAuth, async (req, res) => {
   try {
     const [rows] = await conn.query('SELECT pesanan_id,total_harga,status_pesanan,created_at FROM pesanan WHERE pembeli_id=? ORDER BY created_at DESC', [req.user.id]);
     res.json(rows);
+  } finally {
+    conn.release();
+  }
+});
+
+// Get my orders with full tracking info
+router.get('/orders/my-orders', requireAuth, requireRole(['pembeli']), async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const [orders] = await conn.query(`
+      SELECT 
+        p.pesanan_id, p.total_harga, p.status_pesanan as status, 
+        p.alamat_kirim, p.created_at as tanggal_pesanan,
+        p.tanggal_dikemas, p.tanggal_dikirim, p.tanggal_selesai,
+        p.kurir_id, k.nama as kurir_nama, k.no_tlp as kurir_phone, k.avatar_url as kurir_avatar,
+        p.ongkir, p.lokasi_terakhir, p.catatan_kurir
+      FROM pesanan p
+      LEFT JOIN user k ON k.user_id = p.kurir_id
+      WHERE p.pembeli_id = ?
+      ORDER BY p.created_at DESC
+    `, [req.user.id]);
+
+    // Get items for each order
+    for (const order of orders) {
+      const [items] = await conn.query(`
+        SELECT 
+          i.produk_id, i.jumlah, i.harga_saat_beli as harga,
+          pr.nama_produk, pr.photo_url
+        FROM pesanan_item i
+        JOIN produk pr ON pr.produk_id = i.produk_id
+        WHERE i.pesanan_id = ?
+      `, [order.pesanan_id]);
+      order.items = items;
+    }
+
+    res.json(orders);
   } finally {
     conn.release();
   }
@@ -116,7 +152,7 @@ router.post('/orders/:id/cancel', requireAuth, requireRole(['pembeli']), [param(
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
   } finally {
     conn.release();
@@ -135,7 +171,7 @@ router.get('/penjual/orders', requireAuth, requireRole(['penjual']), async (req,
 
 router.patch('/admin/orders/:id/status', requireAuth, requireRole(['admin']), [
   param('id').isInt({ min: 1 }),
-  body('status_pesanan').isIn(['menunggu','diproses','dikirim','selesai','dibatalkan'])
+  body('status_pesanan').isIn(['menunggu', 'diproses', 'dikirim', 'selesai', 'dibatalkan'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
@@ -159,7 +195,7 @@ router.patch('/admin/orders/:id/status', requireAuth, requireRole(['admin']), [
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
   } finally {
     conn.release();
@@ -167,3 +203,268 @@ router.patch('/admin/orders/:id/status', requireAuth, requireRole(['admin']), [
 });
 
 module.exports = router;
+
+
+// Penjual: Update order to "dikemas"
+router.patch('/orders/:id/pack', requireAuth, requireRole(['penjual']), [
+  param('id').isInt({ min: 1 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    // Check if order contains seller's products
+    const [check] = await conn.query(`
+      SELECT COUNT(*) as cnt FROM pesanan_item i
+      JOIN produk p ON p.produk_id = i.produk_id
+      WHERE i.pesanan_id = ? AND p.penjual_id = ?
+    `, [req.params.id, req.user.id]);
+
+    if (!check[0].cnt) {
+      await conn.rollback();
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    // Auto-assign kurir secara acak (round-robin)
+    const [kuriers] = await conn.query(`
+      SELECT user_id, 
+        (SELECT COUNT(*) FROM pesanan WHERE kurir_id = user.user_id AND status_pesanan IN ('dikirim')) as active_deliveries
+      FROM user 
+      WHERE role = 'kurir' 
+      ORDER BY active_deliveries ASC, RAND() 
+      LIMIT 1
+    `);
+
+    let kurirId = null;
+    if (kuriers.length > 0) {
+      kurirId = kuriers[0].user_id;
+    }
+
+    await conn.query(`
+      UPDATE pesanan 
+      SET status_pesanan = 'dikemas', tanggal_dikemas = NOW(), kurir_id = ?
+      WHERE pesanan_id = ? AND status_pesanan = 'pending'
+    `, [kurirId, req.params.id]);
+
+    await conn.commit();
+    res.json({ ok: true, kurir_assigned: kurirId !== null });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+// Kurir: Assign self to order and update to "dikirim"
+router.patch('/orders/:id/ship', requireAuth, requireRole(['kurir']), [
+  param('id').isInt({ min: 1 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query(`
+      UPDATE pesanan 
+      SET status_pesanan = 'dikirim', kurir_id = ?, tanggal_dikirim = NOW() 
+      WHERE pesanan_id = ? AND status_pesanan = 'dikemas'
+    `, [req.user.id, req.params.id]);
+
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+// Pembeli: Confirm order received
+router.patch('/orders/:id/complete', requireAuth, requireRole(['pembeli']), [
+  param('id').isInt({ min: 1 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [o] = await conn.query('SELECT pembeli_id FROM pesanan WHERE pesanan_id = ? FOR UPDATE', [req.params.id]);
+    if (!o.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'not_found' });
+    }
+    if (o[0].pembeli_id !== req.user.id) {
+      await conn.rollback();
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    await conn.query(`
+      UPDATE pesanan 
+      SET status_pesanan = 'selesai', tanggal_selesai = NOW() 
+      WHERE pesanan_id = ? AND status_pesanan = 'dikirim'
+    `, [req.params.id]);
+
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+// Pembeli: Cancel order
+router.patch('/orders/:id/cancel', requireAuth, requireRole(['pembeli']), [
+  param('id').isInt({ min: 1 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [o] = await conn.query('SELECT pembeli_id, status_pesanan FROM pesanan WHERE pesanan_id = ? FOR UPDATE', [req.params.id]);
+    if (!o.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'not_found' });
+    }
+    if (o[0].pembeli_id !== req.user.id) {
+      await conn.rollback();
+      return res.status(403).json({ error: 'forbidden' });
+    }
+    if (o[0].status_pesanan !== 'pending') {
+      await conn.rollback();
+      return res.status(409).json({ error: 'cannot_cancel' });
+    }
+
+    // Return stock
+    const [its] = await conn.query('SELECT produk_id, jumlah FROM pesanan_item WHERE pesanan_id = ?', [req.params.id]);
+    for (const it of its) {
+      await conn.query('UPDATE produk SET stok = stok + ? WHERE produk_id = ?', [it.jumlah, it.produk_id]);
+    }
+
+    await conn.query(`UPDATE pesanan SET status_pesanan = 'dibatalkan' WHERE pesanan_id = ?`, [req.params.id]);
+
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+
+// Kurir: Get available deliveries
+router.get('/kurir/deliveries', requireAuth, requireRole(['kurir']), async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const [rows] = await conn.query(`
+      SELECT 
+        p.pesanan_id, p.status_pesanan as status, p.total_harga, p.alamat_kirim,
+        p.tanggal_dikemas, p.tanggal_dikirim, p.tanggal_selesai, p.kurir_id,
+        p.lokasi_terakhir, p.catatan_kurir,
+        u.nama as pembeli_nama, u.no_tlp as pembeli_phone,
+        GROUP_CONCAT(CONCAT(pr.nama_produk, ' (', pi.jumlah, 'x)') SEPARATOR ', ') as items_summary
+      FROM pesanan p
+      JOIN user u ON u.user_id = p.pembeli_id
+      LEFT JOIN pesanan_item pi ON pi.pesanan_id = p.pesanan_id
+      LEFT JOIN produk pr ON pr.produk_id = pi.produk_id
+      WHERE p.status_pesanan IN ('dikemas', 'dikirim', 'selesai')
+        AND p.kurir_id = ?
+      GROUP BY p.pesanan_id
+      ORDER BY 
+        CASE p.status_pesanan
+          WHEN 'dikemas' THEN 1
+          WHEN 'dikirim' THEN 2
+          WHEN 'selesai' THEN 3
+        END,
+        p.created_at DESC
+    `, [req.user.id]);
+
+    res.json(rows);
+  } finally {
+    conn.release();
+  }
+});
+
+// Kurir: Update lokasi terakhir
+router.patch('/kurir/orders/:id/location', requireAuth, requireRole(['kurir']), [
+  param('id').isInt({ min: 1 }),
+  body('lokasi_terakhir').isString().trim().isLength({ min: 5, max: 255 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Verify kurir owns this delivery
+    const [check] = await conn.query(
+      'SELECT pesanan_id FROM pesanan WHERE pesanan_id = ? AND kurir_id = ? AND status_pesanan = "dikirim"',
+      [req.params.id, req.user.id]
+    );
+
+    if (!check.length) {
+      await conn.rollback();
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    await conn.query(
+      'UPDATE pesanan SET lokasi_terakhir = ? WHERE pesanan_id = ?',
+      [req.body.lokasi_terakhir, req.params.id]
+    );
+
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+// Kurir: Verifikasi pesanan sudah sampai
+router.patch('/kurir/orders/:id/delivered', requireAuth, requireRole(['kurir']), [
+  param('id').isInt({ min: 1 }),
+  body('catatan_kurir').optional().isString().trim()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Verify kurir owns this delivery
+    const [check] = await conn.query(
+      'SELECT pesanan_id FROM pesanan WHERE pesanan_id = ? AND kurir_id = ? AND status_pesanan = "dikirim"',
+      [req.params.id, req.user.id]
+    );
+
+    if (!check.length) {
+      await conn.rollback();
+      return res.status(403).json({ error: 'forbidden' });
+    }
+
+    // Update status to selesai
+    await conn.query(
+      'UPDATE pesanan SET status_pesanan = "selesai", tanggal_selesai = NOW(), catatan_kurir = ? WHERE pesanan_id = ?',
+      [req.body.catatan_kurir || null, req.params.id]
+    );
+
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});

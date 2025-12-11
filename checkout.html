@@ -1,54 +1,240 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkout</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; margin: 0; background-color: #e9f3f9; color: #1a1a1a;}
-    .container { max-width: 800px; margin: auto; padding: 20px;}
-    .back-arrow { display: flex; align-items: center; margin-bottom: 18px; cursor: pointer; user-select: none;}
-    .back-arrow svg { width: 24px; height: 24px; margin-right: 8px;}
-    .user-info, .seller-info { display: flex; align-items: center; margin-bottom: 15px;}
-    .user-info img, .seller-info img { border-radius: 50%; width: 50px; height: 50px; margin-right: 10px;}
-    .card { background-color: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
-    .product-container { display: flex; gap: 20px; align-items: flex-start;}
-    .product-image-container { flex: 1; min-width: 150px;}
-    .product-info-container { flex: 2;}
-    .product-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px;}
-    .qty-box { display: flex; align-items: center; gap: 10px; margin-top: 15px;}
-    .qty-box button { padding: 5px 15px; font-size: 16px; background-color: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer;}
-    .qty-box button:hover { background-color: #005fa3;}
-    .shipping-options { display: flex; gap: 10px; margin-bottom: 20px; justify-content: space-between;}
-    .shipping-option { background: #f0f4f8; padding: 10px; border-radius: 10px; text-align: center; flex: 1; cursor: pointer; border: 2px solid transparent; transition: all 0.3s;}
-    .shipping-option:hover { background: #e0e8f0;}
-    .shipping-option.active { border-color: #0077cc; background-color: #d0ecff;}
-    .note { background-color: #dceff8; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;}
-    .price-summary { margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px;}
-    .price-summary div { display: flex; justify-content: space-between; margin: 8px 0;}
-    .checkout-btn { background-color: #0077cc; color: white; padding: 15px; border: none; width: 100%; font-size: 16px; border-radius: 12px; cursor: pointer; transition: background-color 0.3s; font-weight: bold;}
-    .checkout-btn:hover { background-color: #005fa3;}
-    select { width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ccc; background-color: white;}
-    .alert { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; z-index: 1000; opacity: 1; transition: opacity 0.5s; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15);}
-    .alert.error { background-color: #ff4444;}
-    .alert.success { background-color: #00C851;}
-    .alert.fade-out { opacity: 0;}
-    
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background-color: #e9f3f9;
+      color: #1a1a1a;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .back-arrow {
+      display: flex;
+      align-items: center;
+      margin-bottom: 18px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .back-arrow svg {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+    }
+
+    .user-info,
+    .seller-info {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .user-info img,
+    .seller-info img {
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      margin-right: 10px;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .product-container {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .product-image-container {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .product-info-container {
+      flex: 2;
+    }
+
+    .product-img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: contain;
+      border-radius: 10px;
+    }
+
+    .qty-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .qty-box button {
+      padding: 5px 15px;
+      font-size: 16px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .qty-box button:hover {
+      background-color: #005fa3;
+    }
+
+    .shipping-options {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: space-between;
+    }
+
+    .shipping-option {
+      background: #f0f4f8;
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      flex: 1;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .shipping-option:hover {
+      background: #e0e8f0;
+    }
+
+    .shipping-option.active {
+      border-color: #0077cc;
+      background-color: #d0ecff;
+    }
+
+    .note {
+      background-color: #dceff8;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .price-summary {
+      margin-bottom: 20px;
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 10px;
+    }
+
+    .price-summary div {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+    }
+
+    .checkout-btn {
+      background-color: #0077cc;
+      color: white;
+      padding: 15px;
+      border: none;
+      width: 100%;
+      font-size: 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      font-weight: bold;
+    }
+
+    .checkout-btn:hover {
+      background-color: #005fa3;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      background-color: white;
+    }
+
+    .alert {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: white;
+      z-index: 1000;
+      opacity: 1;
+      transition: opacity 0.5s;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .alert.error {
+      background-color: #ff4444;
+    }
+
+    .alert.success {
+      background-color: #00C851;
+    }
+
+    .alert.fade-out {
+      opacity: 0;
+    }
+
     @media (max-width: 600px) {
-      .product-container { flex-direction: column; }
-      .product-image-container { width: 100%; text-align: center;}
-      .product-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px; background-color: #f5f5f5; padding: 10px;}
-      .shipping-options { flex-direction: column;}
+      .product-container {
+        flex-direction: column;
+      }
+
+      .product-image-container {
+        width: 100%;
+        text-align: center;
+      }
+
+      .product-img {
+        width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        border-radius: 10px;
+        background-color: #f5f5f5;
+        padding: 10px;
+      }
+
+      .shipping-options {
+        flex-direction: column;
+      }
     }
   </style>
   <script src="assets/js/api.js"></script>
 </head>
+
 <body>
   <div class="container">
     <!-- Arrow Back -->
     <div class="back-arrow" onclick="window.location.href='home_final.html'">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M15 19l-7-7 7-7" />
+      </svg>
       <span>Kembali ke Beranda</span>
     </div>
 
@@ -71,9 +257,12 @@
 
     <h4>Opsi pengiriman</h4>
     <div class="shipping-options">
-      <div class="shipping-option" onclick="pilihKurir('Hemat', 5000, event)">Hemat<br><small>Rp. 5.000</small><br><small>2 hari</small></div>
-      <div class="shipping-option" onclick="pilihKurir('Standar', 10000, event)">Standar<br><small>Rp. 10.000</small><br><small>1 jam</small></div>
-      <div class="shipping-option active" onclick="pilihKurir('Express', 35000, event)">Express<br><small>Rp. 35.000</small><br><small>30 menit</small></div>
+      <div class="shipping-option" onclick="pilihKurir('Hemat', 5000, event)">Hemat<br><small>Rp.
+          5.000</small><br><small>2 hari</small></div>
+      <div class="shipping-option" onclick="pilihKurir('Standar', 10000, event)">Standar<br><small>Rp.
+          10.000</small><br><small>1 jam</small></div>
+      <div class="shipping-option active" onclick="pilihKurir('Express', 35000, event)">Express<br><small>Rp.
+          35.000</small><br><small>30 menit</small></div>
     </div>
 
     <label for="pembayaran"><strong>Metode Pembayaran:</strong></label>
@@ -93,7 +282,7 @@
 
     <button class="checkout-btn" id="checkoutBtn" onclick="checkout()">Checkout</button>
   </div>
-  
+
 
   <script>
     // Fungsi tambah ke keranjang (bisa dipanggil dari halaman lain)
@@ -114,7 +303,7 @@
         });
       }
       localStorage.setItem('cart_checkout', JSON.stringify(cart));
-      API.showModal({ title: 'Keranjang', message: 'Produk ditambahkan ke keranjang!', actions: [{ label: 'Lihat Keranjang', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'keranjang.html'; } }] });
+      API.showModal({ title: 'Keranjang', message: 'Produk ditambahkan ke keranjang!', actions: [{ label: 'Lihat Keranjang', variant: 'primary', handler: function () { API.hideModal(); window.location.href = 'keranjang.html'; } }] });
     }
 
     // Daftar produk referensi
@@ -206,11 +395,38 @@
         setTimeout(() => alertBox.remove(), 500);
       }, 3000);
     }
-    
+
 
     async function loadCart() {
       const token = localStorage.getItem('auth_token');
       if (!token) { document.getElementById("produk-container").innerHTML = "<div style='text-align:center;color:#888'>Silakan login</div>"; return; }
+
+      // Check user role first
+      try {
+        const meResp = await API.authFetch('/auth/me');
+        if (meResp.ok) {
+          const user = await meResp.json();
+          if (user.role !== 'pembeli') {
+            let message = '';
+            let redirectUrl = '';
+            if (user.role === 'penjual') {
+              message = 'Akun penjual tidak dapat melakukan checkout. Kelola produk Anda di dashboard.';
+              redirectUrl = 'dashboard-penjual.html';
+            } else if (user.role === 'kurir') {
+              message = 'Akun kurir tidak dapat melakukan checkout. Fokus pada pengiriman pesanan.';
+              redirectUrl = 'dashboard-kurir-new.html';
+            } else if (user.role === 'admin') {
+              message = 'Akun admin tidak dapat melakukan checkout. Kelola sistem di admin panel.';
+              redirectUrl = 'admin.html';
+            }
+            document.getElementById("produk-container").innerHTML = `<div style='text-align:center;padding:40px'><p style='color:#ff4444;font-weight:bold;margin-bottom:20px'>${message}</p><button onclick="window.location.href='${redirectUrl}'" style='padding:10px 20px;background:#0077cc;color:white;border:none;border-radius:8px;cursor:pointer'>Ke Dashboard</button></div>`;
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to check user role', e);
+      }
+
       try {
         const resp = await API.authFetch('/carts');
         if (!resp.ok) { document.getElementById("produk-container").innerHTML = "<div style='text-align:center;color:#888'>Gagal memuat keranjang</div>"; return; }
@@ -265,15 +481,15 @@
       const item = cartItems[index];
       const product = products[item.id] || item;
       const newQty = item.quantity + change;
-      if (newQty < 1) { showAlert('error','Minimal 1 kg'); return; }
+      if (newQty < 1) { showAlert('error', 'Minimal 1 kg'); return; }
       if (product.stock && newQty > parseInt(product.stock)) { showAlert('error', `Stok hanya tersedia ${product.stock} kg`); return; }
       try {
-        const resp = await API.authFetch('/carts/items/' + item.item_id, { method:'PATCH', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ jumlah: newQty }) });
-        if (!resp.ok) { showAlert('error','Gagal mengubah jumlah'); return; }
+        const resp = await API.authFetch('/carts/items/' + item.item_id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jumlah: newQty }) });
+        if (!resp.ok) { showAlert('error', 'Gagal mengubah jumlah'); return; }
         item.quantity = newQty;
         document.getElementById(`jumlah-${index}`).textContent = newQty;
         updateHarga();
-      } catch { showAlert('error','Kesalahan jaringan'); }
+      } catch { showAlert('error', 'Kesalahan jaringan'); }
     }
 
     function pilihKurir(nama, harga, event) {
@@ -303,23 +519,23 @@
 
     async function checkout() {
       const token = localStorage.getItem('auth_token');
-      if (!token) { showAlert('error','Silakan login'); return; }
+      if (!token) { showAlert('error', 'Silakan login'); return; }
       try {
-        const resp = await API.authFetch('/orders/checkout', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ alamat_kirim: 'Alamat default' }) });
+        const resp = await API.authFetch('/orders/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alamat_kirim: 'Alamat default' }) });
         if (!resp.ok) {
           try {
             const err = await resp.json();
-            if (err && err.error === 'cart_empty') showAlert('error','Keranjang kosong');
-            else if (err && err.error === 'insufficient_stock') showAlert('error','Stok kurang untuk salah satu produk');
-            else if (err && err.error === 'product_missing') showAlert('error','Produk tidak ditemukan');
-            else showAlert('error','Checkout gagal');
-          } catch { showAlert('error','Checkout gagal'); }
+            if (err && err.error === 'cart_empty') showAlert('error', 'Keranjang kosong');
+            else if (err && err.error === 'insufficient_stock') showAlert('error', 'Stok kurang untuk salah satu produk');
+            else if (err && err.error === 'product_missing') showAlert('error', 'Produk tidak ditemukan');
+            else showAlert('error', 'Checkout gagal');
+          } catch { showAlert('error', 'Checkout gagal'); }
           return;
         }
         const data = await resp.json();
         const metode = document.getElementById('pembayaran').value;
-        const pay = await API.authFetch('/payments', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ pesanan_id: data.pesanan_id, metode }) });
-        if (!pay.ok) { showAlert('error','Gagal membuat pembayaran'); return; }
+        const pay = await API.authFetch('/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pesanan_id: data.pesanan_id, metode }) });
+        if (!pay.ok) { showAlert('error', 'Gagal membuat pembayaran'); return; }
         const pr = await pay.json();
         const totalProduk = cartItems.reduce((s, it) => s + (it.price * it.quantity), 0);
         const currentOrder = {
@@ -330,49 +546,49 @@
           pesanan_id: data.pesanan_id,
           pembayaran_id: pr.pembayaran_id
         };
-        try { localStorage.setItem('currentOrder', JSON.stringify(currentOrder)); } catch {}
+        try { localStorage.setItem('currentOrder', JSON.stringify(currentOrder)); } catch { }
         window.currentPaymentId = pr.pembayaran_id;
         const btn = document.getElementById('checkoutBtn');
         btn.textContent = 'Konfirmasi Pembayaran';
-        btn.onclick = function(){ confirmPaymentPrompt(window.currentPaymentId); };
+        btn.onclick = function () { confirmPaymentPrompt(window.currentPaymentId); };
         API.showModal({
           title: 'Pesanan Dibuat',
           message: 'Silakan lanjutkan pembayaran kemudian konfirmasi.',
           actions: [{ label: 'Oke', variant: 'primary', handler: API.hideModal }]
         });
-      } catch { showAlert('error','Kesalahan jaringan'); }
+      } catch { showAlert('error', 'Kesalahan jaringan'); }
     }
-    function confirmPaymentPrompt(id){
+    function confirmPaymentPrompt(id) {
       API.showModal({
         title: 'Konfirmasi Pembayaran',
         message: 'Apakah pembayaran telah dilakukan?',
         actions: [
           { label: 'Belum', variant: 'secondary', handler: API.hideModal },
-          { label: 'Sudah, Konfirmasi', variant: 'primary', handler: function(){ API.hideModal(); confirmPayment(id); } }
+          { label: 'Sudah, Konfirmasi', variant: 'primary', handler: function () { API.hideModal(); confirmPayment(id); } }
         ]
       });
     }
 
     async function confirmPayment(id) {
       const token = localStorage.getItem('auth_token');
-      if (!token) { showAlert('error','Silakan login'); return; }
+      if (!token) { showAlert('error', 'Silakan login'); return; }
       try {
-        const resp = await API.authFetch('/payments/' + id + '/confirm', { method:'POST' });
-        if (!resp.ok) { showAlert('error','Konfirmasi pembayaran gagal'); return; }
+        const resp = await API.authFetch('/payments/' + id + '/confirm', { method: 'POST' });
+        if (!resp.ok) { showAlert('error', 'Konfirmasi pembayaran gagal'); return; }
         try {
           const order = JSON.parse(localStorage.getItem('currentOrder') || '{}');
           order.status_pembayaran = 'sudah_dibayar';
           localStorage.setItem('currentOrder', JSON.stringify(order));
-        } catch {}
+        } catch { }
         API.showModal({
           title: 'Pembayaran Berhasil',
           message: 'Terima kasih. Pembayaran Anda telah dikonfirmasi.',
-          actions: [{ label: 'Lihat Ringkasan', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'pembayaran-berhasil.html'; } }]
+          actions: [{ label: 'Lihat Ringkasan', variant: 'primary', handler: function () { API.hideModal(); window.location.href = 'pembayaran-berhasil.html'; } }]
         });
-      } catch { showAlert('error','Kesalahan jaringan'); }
+      } catch { showAlert('error', 'Kesalahan jaringan'); }
     }
 
-    async function loadUserAvatar(){
+    async function loadUserAvatar() {
       const token = localStorage.getItem('auth_token');
       const img = document.getElementById('userAvatar');
       if (!img) return;
@@ -395,4 +611,5 @@
     });
   </script>
 </body>
+
 </html>

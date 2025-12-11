@@ -165,7 +165,7 @@ CREATE TABLE `user` (
   `no_tlp` varchar(20) DEFAULT NULL,
   `alamat` text DEFAULT NULL,
   `password_hash` varchar(255) NOT NULL,
-  `role` enum('pembeli','penjual','admin') DEFAULT 'pembeli',
+  `role` enum('pembeli','penjual','admin','kurir') DEFAULT 'pembeli',
   `verified` tinyint(1) DEFAULT 0,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

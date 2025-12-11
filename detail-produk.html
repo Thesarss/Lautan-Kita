@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detail Produk - Lautan Kita</title>
+    <link rel="stylesheet" href="Desktop2style.css" />
+    <script src="assets/js/api.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <a class="back-button" href="home_final.html">⬅️</a>
+
+        <section class="product-section">
+            <div class="image-wrapper">
+                <img id="productImage" src="img/logo.png" alt="Produk" />
+            </div>
+
+            <div class="product-info">
+                <div class="info-header">
+                    <div class="info-left">
+                        <h1 id="productName">Memuat...</h1>
+                        <p class="price" id="productPrice">Rp. 0/kg</p>
+                        <p class="stock" id="productStock">Stok: 0 kg</p>
+                    </div>
+                    <div class="info-right">
+                        <div class="rating" id="productRating">★★★★★</div>
+                        <div class="actions">
+                            <button class="cart-button" id="addToCartBtn" onclick="addToCartFromDetail()">🛒
+                                Keranjang</button>
+                            <button class="buy-button" id="buyNowBtn" onclick="buyNowFromDetail()">Beli
+                                Sekarang</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="description info-card">
+                <h3>Deskripsi Produk</h3>
+                <p id="productDescription">Memuat deskripsi produk...</p>
+                <ul id="productDetails">
+                    <li>Status: <span id="productStatus">Tersedia</span></li>
+                    <li>Kategori: <span id="productCategory">-</span></li>
+                </ul>
+                <p>🚚 Siap Kirim! Kami siap melayani pengiriman cepat.</p>
+            </div>
+
+            <div class="review-card info-card seller-review-display">
+                <div class="card-header">
+                    <img id="sellerAvatar" src="img/penjual.png" alt="Penjual" class="avatar" />
+                    <div class="review-meta">
+                        <strong class="review-name" id="sellerName">Penjual</strong>
+                        <p class="review-text">Penjual terpercaya</p>
+                        <button class="visit-button" onclick="visitSeller()">Kunjungi</button>
+                    </div>
+                    <div class="rating">★★★★★</div>
+                </div>
+            </div>
+
+            <div class="review-card info-card user-review-display" id="userReviewCard" style="display:none;">
+                <div class="card-header">
+                    <img id="reviewAvatar" src="img/pembeli.png" alt="Pembeli" class="avatar" />
+                    <div class="review-meta">
+                        <strong class="review-name" id="reviewUser">Pembeli</strong>
+                        <p class="review-text" id="reviewComment">Ulasan pembeli...</p>
+                    </div>
+                    <div class="rating" id="reviewRating">★★★★★</div>
+                </div>
+                <div class="review-body">
+                    <img id="reviewImage" src="" alt="Review" class="review-img" style="display:none;" />
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <footer>
+        <div class="footer-container">
+            <div class="footer-left">
+                <h4>Lautan Kita</h4>
+                <p>
+                    Lautan Kita adalah platform digital inovatif yang menghubungkan nelayan lokal langsung dengan
+                    konsumen dan bisnis, menyediakan produk laut segar, transparan, dan berkelanjutan.
+                </p>
+
+                <div class="footer-nav">
+                    <h5><a href="home_final.html" class="footer-link">Beranda</a></h5>
+                    <h5><a href="keranjang.html" class="footer-link">Keranjang</a></h5>
+                    <h5><a href="pusat_bantuan.html" class="footer-link">Pusat Bantuan</a></h5>
+                </div>
+            </div>
+            <div class="footer-right">
+                <h4>Kontak Kami:</h4>
+                <p>📸 @lautankita</p>
+                <p>🎵 @lautankita</p>
+                <p>📞 +62 811 1234 5678</p>
+                <p>✉️ lautankita@gmail.com</p>
+                <h4>Alamat:</h4>
+                <p>📍 Ganet, BT 11, Tanjung Pinang Timur, Tanjung Pinang, Kepulauan Riau</p>
+            </div>
+        </div>
+        <p class="copyright">© 2025 Lautan Kita. All rights reserved</p>
+    </footer>
+
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+        let currentProduct = null;
+
+        // Mapping kategori ID ke nama
+        const categoryMap = {
+            1: 'Ikan Laut',
+            2: 'Udang',
+            3: 'Kepiting',
+            4: 'Sotong',
+            5: 'Cumi-cumi'
+        };
+
+        // Fallback data produk lokal (jika backend tidak tersedia)
+        const localProducts = {
+            'ikan-belanak': {
+                id: 'ikan-belanak',
+                name: 'Ikan Belanak',
+                price: 40000,
+                image: 'img/ikan-belanak.png',
+                description: 'Ikan belanak segar langsung dari laut, ditangkap pagi ini dengan metode ramah lingkungan. Cocok untuk berbagai jenis masakan khas Indonesia.',
+                seller: 'Budi Fisherman',
+                rating: 5,
+                stock: 15,
+                category: 'Ikan Laut',
+                reviews: [
+                    { user: 'Santi', rating: 5, comment: 'Ikan belanaknya benar-benar segar! Dagingnya masih kenyal dan tidak berbau amis.<br>Rasanya enak sekali setelah digoreng. Terima kasih, Pak Nelayan! Pasti beli lagi!', img: 'img/ikan-belanak.png' }
+                ]
+            },
+            'ikan-puri': {
+                id: 'ikan-puri',
+                name: 'Ikan Puri',
+                price: 25000,
+                image: 'img/ikan-puri.png',
+                description: 'Ikan puri segar dengan daging yang lembut dan gurih. Hasil tangkapan nelayan lokal yang berkualitas.',
+                seller: 'Budi Fisherman',
+                rating: 4,
+                stock: 9,
+                category: 'Ikan Laut'
+            },
+            'udang': {
+                id: 'udang',
+                name: 'Udang',
+                price: 28000,
+                image: 'img/udang.png',
+                description: 'Udang segar ukuran besar dengan cita rasa manis alami. Langsung dari tambak nelayan lokal.',
+                seller: 'Susi Seafood',
+                rating: 5,
+                stock: 7,
+                category: 'Udang'
+            },
+            'kepiting': {
+                id: 'kepiting',
+                name: 'Kepiting',
+                price: 40000,
+                image: 'img/kepiting.png',
+                description: 'Kepiting segar dengan daging yang padat dan lezat. Cocok untuk berbagai olahan kepiting favorit Anda.',
+                seller: 'Joko Nelayan',
+                rating: 4,
+                stock: 15,
+                category: 'Kepiting'
+            },
+            'ikan-tongkol': {
+                id: 'ikan-tongkol',
+                name: 'Ikan Tongkol',
+                price: 37000,
+                image: 'img/ikan-tongkol.png',
+                description: 'Ikan tongkol segar dengan tekstur daging yang kenyal. Kaya akan protein dan omega-3.',
+                seller: 'Budi Fisherman',
+                rating: 4,
+                stock: 12,
+                category: 'Ikan Laut'
+            },
+            'sotong': {
+                id: 'sotong',
+                name: 'Sotong',
+                price: 64000,
+                image: 'img/sotong.png',
+                description: 'Sotong segar dengan cita rasa khas yang lezat. Hasil tangkapan terbaik dari nelayan lokal.',
+                seller: 'Joko Nelayan',
+                rating: 5,
+                stock: 8,
+                category: 'Sotong'
+            },
+            'ikan-kakap': {
+                id: 'ikan-kakap',
+                name: 'Ikan Kakap',
+                price: 72000,
+                image: 'img/ikan-kakap.png',
+                description: 'Ikan kakap merah segar dengan daging tebal dan lembut. Premium quality untuk hidangan istimewa.',
+                seller: 'Susi Seafood',
+                rating: 5,
+                stock: 11,
+                category: 'Ikan Laut'
+            }
+        };
+
+        // Helper function untuk mendapatkan gambar default berdasarkan nama produk
+        function getDefaultImage(productName) {
+            const name = productName.toLowerCase();
+            if (name.includes('belanak')) return 'img/ikan-belanak.png';
+            if (name.includes('puri')) return 'img/ikan-puri.png';
+            if (name.includes('udang')) return 'img/udang.png';
+            if (name.includes('kepiting')) return 'img/kepiting.png';
+            if (name.includes('tongkol')) return 'img/ikan-tongkol.png';
+            if (name.includes('sotong') || name.includes('cumi')) return 'img/sotong.png';
+            if (name.includes('kakap')) return 'img/ikan-kakap.png';
+            return 'img/logo.png';
+        }
+
+        async function loadProductDetail() {
+            const params = new URLSearchParams(window.location.search);
+            const productId = params.get('id');
+
+            if (!productId) {
+                API.showModal({
+                    title: 'Error',
+                    message: 'ID produk tidak ditemukan!',
+                    actions: [{ label: 'Kembali', variant: 'primary', handler: () => { window.location.href = 'home_final.html'; } }]
+                });
+                return;
+            }
+
+            try {
+                // Coba ambil dari backend API
+                const resp = await fetch(API_BASE + '/products');
+                if (resp.ok) {
+                    const products = await resp.json();
+                    // Cari produk berdasarkan ID numerik atau nama yang di-slugify
+                    const product = products.find(p => {
+                        const slugName = p.nama_produk.toLowerCase().replace(/\s+/g, '-');
+                        return p.produk_id == productId || slugName === productId;
+                    });
+
+                    if (product) {
+                        currentProduct = {
+                            id: product.produk_id,
+                            name: product.nama_produk,
+                            price: Number(product.harga),
+                            image: product.photo_url ? (API_BASE + product.photo_url) : getDefaultImage(product.nama_produk),
+                            description: product.deskripsi || 'Produk segar hasil tangkapan nelayan lokal. Kualitas terjamin dan siap dikirim ke seluruh Indonesia.',
+                            seller: product.penjual_nama || 'Penjual',
+                            rating: 5,
+                            stock: product.stok || 0,
+                            category: categoryMap[product.kategori_id] || 'Hasil Laut',
+                            status: product.status === 'aktif' ? 'Tersedia' : 'Tidak Tersedia'
+                        };
+                        renderProduct(currentProduct);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('Backend tidak tersedia, menggunakan data lokal');
+            }
+
+            // Fallback ke data lokal
+            const localProduct = localProducts[productId];
+            if (localProduct) {
+                currentProduct = localProduct;
+                renderProduct(localProduct);
+            } else {
+                API.showModal({
+                    title: 'Error',
+                    message: 'Produk tidak ditemukan!',
+                    actions: [{ label: 'Kembali', variant: 'primary', handler: () => { window.location.href = 'home_final.html'; } }]
+                });
+            }
+        }
+
+        function renderProduct(product) {
+            // Update title
+            document.title = `${product.name} - Lautan Kita`;
+
+            // Update gambar
+            document.getElementById('productImage').src = product.image;
+            document.getElementById('productImage').alt = product.name;
+
+            // Update info produk
+            document.getElementById('productName').textContent = product.name;
+            document.getElementById('productPrice').textContent = `Rp. ${product.price.toLocaleString('id-ID')}/kg`;
+            document.getElementById('productStock').textContent = `Stok: ${product.stock} kg`;
+
+            // Update rating
+            const ratingEl = document.getElementById('productRating');
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                stars += i < (product.rating || 5) ? '★' : '☆';
+            }
+            ratingEl.textContent = stars;
+
+            // Update deskripsi
+            document.getElementById('productDescription').textContent = product.description;
+            document.getElementById('productStatus').textContent = product.status || 'Tersedia';
+            document.getElementById('productCategory').textContent = product.category || 'Hasil Laut';
+
+            // Update info penjual
+            document.getElementById('sellerName').textContent = product.seller;
+
+            // Update review jika ada
+            if (product.reviews && product.reviews.length > 0) {
+                const review = product.reviews[0];
+                const reviewCard = document.getElementById('userReviewCard');
+                reviewCard.style.display = 'block';
+
+                document.getElementById('reviewUser').textContent = review.user;
+                document.getElementById('reviewComment').innerHTML = review.comment;
+
+                const reviewRatingEl = document.getElementById('reviewRating');
+                let reviewStars = '';
+                for (let i = 0; i < 5; i++) {
+                    reviewStars += i < review.rating ? '★' : '☆';
+                }
+                reviewRatingEl.textContent = reviewStars;
+
+                if (review.img) {
+                    document.getElementById('reviewImage').src = review.img;
+                    document.getElementById('reviewImage').style.display = 'block';
+                }
+            }
+        }
+
+        async function addToCartFromDetail() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                API.showModal({
+                    title: 'Login Diperlukan',
+                    message: 'Silakan login terlebih dahulu untuk menambahkan produk ke keranjang.',
+                    actions: [
+                        { label: 'Login', variant: 'primary', handler: () => { window.location.href = 'login.html'; } },
+                        { label: 'Batal', variant: 'secondary', handler: API.hideModal }
+                    ]
+                });
+                return;
+            }
+
+            // Check user role
+            try {
+                const meResp = await API.authFetch('/auth/me');
+                if (meResp.ok) {
+                    const user = await meResp.json();
+                    if (user.role === 'penjual') {
+                        API.showModal({
+                            title: 'Akun Penjual',
+                            message: 'Akun penjual tidak dapat membeli produk. Kelola stok produk Anda di dashboard.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+                        });
+                        return;
+                    }
+                    if (user.role === 'kurir') {
+                        API.showModal({
+                            title: 'Akun Kurir',
+                            message: 'Akun kurir tidak dapat membeli produk. Fokus pada pengiriman pesanan.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+                        });
+                        return;
+                    }
+                    if (user.role === 'admin') {
+                        API.showModal({
+                            title: 'Akun Admin',
+                            message: 'Akun admin tidak dapat membeli produk. Kelola sistem di admin panel.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+                        });
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to check user role', e);
+            }
+
+            if (!currentProduct) return;
+
+            try {
+                const resp = await API.authFetch('/carts/items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        produk_id: currentProduct.id,
+                        jumlah: 1
+                    })
+                });
+
+                if (resp.ok) {
+                    API.showModal({
+                        title: 'Berhasil',
+                        message: 'Produk berhasil ditambahkan ke keranjang!',
+                        actions: [
+                            { label: 'Lihat Keranjang', variant: 'primary', handler: () => { window.location.href = 'keranjang.html'; } },
+                            { label: 'Lanjut Belanja', variant: 'secondary', handler: API.hideModal }
+                        ]
+                    });
+                } else {
+                    const error = await resp.json();
+                    API.showModal({ title: 'Error', message: error.error === 'forbidden' ? 'Anda tidak memiliki akses untuk membeli produk.' : 'Gagal menambahkan ke keranjang.' });
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
+            }
+        }
+
+        async function buyNowFromDetail() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                API.showModal({
+                    title: 'Login Diperlukan',
+                    message: 'Silakan login terlebih dahulu untuk membeli produk.',
+                    actions: [
+                        { label: 'Login', variant: 'primary', handler: () => { window.location.href = 'login.html'; } },
+                        { label: 'Batal', variant: 'secondary', handler: API.hideModal }
+                    ]
+                });
+                return;
+            }
+
+            // Check user role
+            try {
+                const meResp = await API.authFetch('/auth/me');
+                if (meResp.ok) {
+                    const user = await meResp.json();
+                    if (user.role === 'penjual') {
+                        API.showModal({
+                            title: 'Akun Penjual',
+                            message: 'Akun penjual tidak dapat membeli produk. Kelola stok produk Anda di dashboard.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+                        });
+                        return;
+                    }
+                    if (user.role === 'kurir') {
+                        API.showModal({
+                            title: 'Akun Kurir',
+                            message: 'Akun kurir tidak dapat membeli produk. Fokus pada pengiriman pesanan.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+                        });
+                        return;
+                    }
+                    if (user.role === 'admin') {
+                        API.showModal({
+                            title: 'Akun Admin',
+                            message: 'Akun admin tidak dapat membeli produk. Kelola sistem di admin panel.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+                        });
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to check user role', e);
+            }
+
+            if (!currentProduct) return;
+
+            // Tambah ke keranjang dulu, lalu redirect ke checkout
+            try {
+                const resp = await API.authFetch('/carts/items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        produk_id: currentProduct.id,
+                        jumlah: 1
+                    })
+                });
+
+                if (resp.ok) {
+                    window.location.href = 'checkout.html';
+                } else {
+                    const error = await resp.json();
+                    API.showModal({ title: 'Error', message: error.error === 'forbidden' ? 'Anda tidak memiliki akses untuk membeli produk.' : 'Gagal memproses pembelian.' });
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
+            }
+        }
+
+        function visitSeller() {
+            API.showModal({
+                title: 'Info',
+                message: 'Fitur kunjungi toko penjual akan segera hadir!',
+                actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+            });
+        }
+
+        // Load product saat halaman dimuat
+        window.addEventListener('DOMContentLoaded', loadProductDetail);
+    </script>
+</body>
+
+</html>

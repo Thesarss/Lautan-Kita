@@ -1,159 +1,349 @@
-# Lautan Kita — README
+# 🌊 Lautan Kita
 
-## Ringkasan
-- Aplikasi e‑commerce hasil laut yang menghubungkan Nelayan/Penjual langsung ke Pembeli dengan kontrol Admin.
-- Fitur inti: katalog produk, keranjang, checkout, pembayaran, pengiriman, riwayat pesanan, dan audit admin.
+> **E-commerce Hasil Laut** - Platform yang menghubungkan Nelayan/Penjual langsung ke Pembeli
 
-## Peran & Hak Akses
-- Admin: moderasi produk, kelola pengguna, kelola status pesanan, payout/audit.
-- Pembeli: registrasi/login, lihat katalog, tambah ke keranjang, checkout, bayar, lacak pesanan.
-- Nelayan/Penjual: buat produk, atur stok/harga, lihat pesanan terkait.
+[![Node.js](https://img.shields.io/badge/Node.js-v14+-green.svg)](https://nodejs.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-blue.svg)](https://www.mysql.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Teknologi & Metode
-- Backend: `Node.js` + `Express`, DB `MySQL` (XAMPP), autentikasi `JWT`.
-- Validasi: `express-validator` pada semua endpoint input.
-- Transaksi: operasi kritis (checkout, pembatalan, konfirmasi pembayaran/pengiriman) memakai transaksi DB.
-- Frontend: HTML/CSS/JS statis, komunikasi `fetch` ke API dan helper `assets/js/api.js` untuk bearer token.
+> **🚀 New here?** Start with **[START-HERE.md](START-HERE.md)** for a quick 5-minute setup guide!  
+> **📚 Complete Documentation:** See **[MASTER-DOCUMENTATION.md](MASTER-DOCUMENTATION.md)** for all-in-one docs!
 
-## Metodologi Pengembangan (Hybrid Waterfall + Agile)
-- Tujuan: kombinasi stabilitas desain awal (Waterfall) dengan iterasi cepat berbasis umpan balik (Agile).
-- Waterfall (perencanaan/kontrak awal):
-  - Skema DB dan entitas utama ditetapkan di `toko_online.sql` sebagai kontrak sumber data.
-  - Kontrak API ditata per domain pada `backend/src/routes/*` (Auth, Produk, Keranjang, Orders, Payments, Shipments, Admin).
-  - Struktur arsitektur dan middleware (`backend/src/app.js`, `backend/src/middleware/auth.js`) dibuat dulu sebagai fondasi.
-- Agile (iterasi/sprint berurutan):
-  - Sprint 1: Auth JWT + validasi input (`auth.js`), endpoint `register/login/me`.
-  - Sprint 2: Produk publik + buat produk penjual (`products.js`).
-  - Sprint 3: Keranjang tambah/list/update/hapus (`carts.js`).
-  - Sprint 4: Checkout pesanan dengan transaksi, restock saat batal (`orders.js`).
-  - Sprint 5: Pembayaran: buat/konfirmasi manual, validasi metode (`payments.js`).
-  - Sprint 6: Pengiriman: buat dan update status (`shipments.js`).
-  - Sprint 7: Admin: ubah status pesanan, audit/payout (opsional) (`admin.js`).
-  - Iterasi frontend: sinkronisasi beranda dengan API (`home_final.html`), pecah langkah checkout agar konfirmasi pembayaran manual (`checkout.html`).
-- Praktik kualitas & operasional:
-  - Validasi sistematis (`express-validator`), penanganan error terstandar (422/403/404/409/500).
-  - Transaksi DB untuk konsistensi stok dan status.
-  - Health check DB saat startup, CORS/preflight di backend.
-  - Uji manual endpoint dengan token (curl/Postman) dan seed produk penjual untuk demo.
+---
 
-## Menjalankan Backend (XAMPP)
-- Jalankan MySQL di XAMPP (port default `3306`).
-- Import schema `toko_online.sql` ke DB `toko_online`.
-- Buat `backend/.env` (contoh ada di `.env.example`):
-  - `DB_HOST=127.0.0.1`
-  - `DB_PORT=3306`
-  - `DB_USER=root`
-  - `DB_PASSWORD=`
-  - `DB_NAME=toko_online`
-  - `JWT_SECRET=<string_acak>`
-- Start server: `npm run start` di folder `backend` → tersedia di `http://localhost:4000`.
+## 🚀 Quick Start
 
-## Menjalankan Frontend
-- Buka `home_final.html` di browser atau gunakan server statis (mis. VS Code Live Server).
-- Halaman utama:
-  - Beranda: `home_final.html`
-  - Registrasi: `registrasi.html`
-  - Login: `login.html`
-  - Keranjang: `keranjang.html`
-  - Checkout: `checkout.html`
-  - Pembayaran sukses: `pembayaran-berhasil.html`
-  - Rincian pesanan: `rincian-pesanan.html`
-  - Pusat bantuan: `pusat_bantuan.html`
+```bash
+# 1. Import database
+mysql -u root toko_online < toko_online.sql
 
-## Fitur Utama (Ringkas)
-- Auth: `register`, `login`, `GET /auth/me`.
-- Profil: `PATCH /auth/me` untuk ubah `nama`/`email` (cek unik email).
-- Produk: list publik (`GET /products`), tambah oleh penjual.
-- Keranjang: tambah/list/update/hapus item (terautentikasi).
-- Checkout: membuat pesanan, mengurangi stok dengan transaksi.
-- Pembayaran: buat pembayaran, konfirmasi manual, lihat status.
-- Pengiriman: buat dan update status pengiriman (`admin/penjual`).
-- Admin: ubah status pesanan, audit log (opsional).
+# 2. Setup & start backend
+cd backend
+npm install
+cp .env.example .env
+npm start
 
-## Status Proyek (per 2025-12-08)
-- Backend API inti selesai dan teruji manual untuk domain: Auth, Produk, Keranjang, Pesanan, Pembayaran, Pengiriman, Admin.
-- Upload gambar selesai: avatar pengguna (`/auth/avatar`) dan foto produk (di `/penjual/produk`). File disajikan via static `GET /uploads/*`.
-- RBAC aktif: middleware mewajibkan peran yang tepat untuk setiap endpoint sensitif.
-- Frontend tersinkron dengan API: beranda mengambil daftar dari `GET /products`, keranjang/checkout terhubung ke backend, profil dan avatar berjalan, registrasi mendukung pemilihan peran.
-- Penjual: dapat menambah produk dengan foto, melihat produk miliknya, serta mengelola stok/harga. Fitur keranjang otomatis dinonaktifkan untuk akun penjual.
+# 3. Buat admin
+node create-admin.js
 
-## Fungsi/Endpoint Selesai
-- Auth
-  - `POST /auth/register`
-  - `POST /auth/login`
-  - `GET /auth/me`
-  - `PATCH /auth/me`
-  - `POST /auth/avatar`
-- Produk
-  - `GET /products` (kini mengembalikan `photo_url`)
-  - `POST /penjual/produk` (menerima `image` base64 opsional, menyimpan ke `/uploads/products/...`)
-  - `GET /penjual/produk` (daftar produk milik penjual)
-  - `PATCH /penjual/produk/:id` (update stok/harga dan field opsional lain)
-- Keranjang (khusus `pembeli`)
-  - `GET /carts`
-  - `POST /carts/items`
-  - `PATCH /carts/items/:itemId`
-  - `DELETE /carts/items/:itemId`
-- Pesanan
-  - `POST /orders/checkout` (membuat pesanan dari keranjang, mengurangi stok per item)
-  - `GET /orders` (riwayat pesanan pembeli)
-  - `GET /orders/:id` (detail + items, termasuk `penjual_nama`)
-  - `POST /orders/:id/cancel` (rollback stok bila dibatalkan saat status `menunggu`)
-  - `GET /penjual/orders` (daftar pesanan yang berisi produk penjual)
-  - `PATCH /admin/orders/:id/status` (ubah status oleh admin dengan logika restock saat dibatalkan)
-- Pembayaran
-  - `POST /payments` (membuat pembayaran untuk pesanan)
-  - `POST /payments/:id/confirm` (konfirmasi pembayaran; order berpindah ke `diproses`)
-  - `GET /orders/:orderId/payments`
-- Pengiriman
-  - `POST /shipments` (membuat pengiriman; jika tersedia di proyek)
-  - `PATCH /shipments/:id` (kurir/admin mengubah `status_kirim` dan/atau `no_resi`; menandai pesanan `selesai` bila diterima)
-- Admin
-  - `PATCH /admin/users/:id/role` (ganti peran pengguna)
-  - `PATCH /admin/products/:id/status` (aktif/nonaktif)
-  - `PATCH /admin/reviews/:id/status` (aktif/disembunyikan)
-  - Laporan penjualan dan payout: `GET /admin/reports/*`
+# 4. Buka browser
+# http://localhost:3000/home_final.html
+```
 
-## Implementasi Frontend Selesai
-- Modal terpusat untuk notifikasi/konfirmasi (ganti semua `alert()` browser).
-- Beranda (`home_final.html`)
-  - Menarik produk dari backend, menampilkan `photo_url` jika ada.
-  - Fallback gambar dinamis berdasarkan nama/kategori bila tidak ada foto.
-  - Tombol aksi beradaptasi dengan peran: untuk `pembeli` ada keranjang/beli, untuk `penjual` tersedia tombol kelola stok.
-  - Form “Tambah Produk Nelayan” dengan input foto + preview, kirim base64 ke backend.
-- Profil (`views/profil.html`)
-  - Menampilkan dan mengedit profil (`PATCH /auth/me`), upload avatar (`POST /auth/avatar`).
-- Registrasi (`registrasi.html`)
-  - Dropdown peran (pembeli/penjual/kurir), validasi dasar.
-- Checkout (`checkout.html`)
-  - Terhubung ke keranjang backend, konfirmasi pembayaran manual.
+**Login Admin:**
+```
+Email    : admin@lautankita.com
+Password : Admin123456
+```
 
-## Catatan Migrasi/Operasional
-- Startup backend memastikan kolom:
-  - `user.avatar_url` dan `produk.photo_url` dibuat otomatis jika belum ada.
-- Direktori upload:
-  - `backend/uploads/avatars`, `backend/uploads/products` dibuat otomatis.
+---
 
-## Ringkas Cara Coba Fitur Penjual
-- Login sebagai penjual → buka menu Akun → “Tambah Produk” → isi nama/harga/stok/opsional kategori + foto → “Tambah”.
-- Produk tampil di beranda; untuk kelola stok/harga, klik ikon box pada kartu produk.
+## ✨ Fitur Utama
 
-## Cara Uji Cepat
-- Login sebagai penjual dan tambahkan produk (`POST /penjual/produk`).
-- Login sebagai pembeli, tambah ke keranjang (`POST /carts/items`).
-- Checkout di `checkout.html` dan pilih metode pembayaran, lalu konfirmasi.
+### 🛒 Untuk Pembeli
+- Katalog produk hasil laut
+- Keranjang belanja
+- Checkout & pembayaran
+- Tracking pesanan real-time
+- Upload bukti transfer
 
-## Troubleshooting
-- “Kesalahan jaringan” di `checkout.html`: pastikan backend aktif, token login ada, dan `assets/js/api.js` termuat.
-- “Keranjang kosong”: tambahkan item lewat kartu produk backend (bukan ID string statis).
-- CORS: backend sudah mengaktifkan preflight; akses via `http://127.0.0.1`/`http://localhost`.
+### 🐟 Untuk Penjual/Nelayan
+- Kelola produk (CRUD)
+- Upload foto produk
+- Statistik penjualan
+- Lihat pesanan masuk
+- Filter & search produk
 
-## Akun Demo & Data Login
-- Cara membuat cepat: gunakan halaman `registrasi.html` atau endpoint `POST /auth/register`.
-- Peran yang didukung: `pembeli`, `penjual`, `admin`, `kurir`.
-- Contoh kredensial (buat melalui registrasi):
-  - Admin: `admin@lautankita.test` / `Admin12345`
-  - Nelayan/Penjual: `suhardi@gmail.com` / `suhardi123`
-  - Kurir: `kurir@lautankita.test` / `Kurir12345`
-  - Pembeli: `pembeli@lautankita.test` / `Pembeli12345`
-  - Catatan: Password minimal 8 karakter; email unik. Jika butuh akun siap pakai, jalankan registrasi untuk setiap peran lalu login di `login.html`.
+### 🚚 Untuk Kurir
+- Lihat daftar pengiriman
+- Update status pengiriman
+- Input nomor resi
+- **Privasi:** Hanya lihat alamat tujuan
+
+### 👑 Untuk Admin
+- Kelola semua user
+- Laporan transaksi (export CSV)
+- Moderasi ulasan
+- Full access ke semua data
+
+---
+
+## 🛠 Teknologi
+
+**Backend:**
+- Node.js + Express
+- MySQL (XAMPP)
+- JWT Authentication
+- bcrypt Password Hashing
+
+**Frontend:**
+- HTML5/CSS3/JavaScript
+- Responsive Design
+- Modal System
+- API Helper
+
+---
+
+## 📚 Dokumentasi
+
+### 📖 Dokumentasi Lengkap
+
+**🌟 MASTER DOCUMENTATION (All-in-One):**  
+**[MASTER-DOCUMENTATION.md](MASTER-DOCUMENTATION.md)** - Semua dokumentasi dalam satu file!
+
+Berisi:
+- Quick Start (5 menit)
+- Setup & instalasi detail
+- Role & permission matrix
+- Dashboard system lengkap
+- Admin panel features
+- Tracking & lokasi real-time
+- API endpoints lengkap
+- Testing guide
+- Troubleshooting
+- Project structure
+- Update history
+
+### 📁 Dokumentasi Lainnya
+
+| File | Deskripsi |
+|------|-----------|
+| [`docs/QUICK-START.md`](docs/QUICK-START.md) | Panduan cepat memulai |
+| [`docs/DASHBOARD-SYSTEM-README.md`](docs/DASHBOARD-SYSTEM-README.md) | Sistem dashboard per role |
+| [`docs/ADMIN-PANEL-FEATURES.md`](docs/ADMIN-PANEL-FEATURES.md) | Fitur admin panel |
+| [`docs/CARA-MEMBUAT-ADMIN.md`](docs/CARA-MEMBUAT-ADMIN.md) | Cara membuat akun admin |
+| [`docs/TROUBLESHOOT-LOGIN-ADMIN.md`](docs/TROUBLESHOOT-LOGIN-ADMIN.md) | Troubleshoot login admin |
+
+---
+
+## 👥 Role & Permission
+
+| Role | Dashboard | Kelola Produk | Lihat Pesanan | Lihat Alamat | Admin Access |
+|------|-----------|---------------|---------------|--------------|--------------|
+| **Pembeli** | ✅ | ❌ | ✅ (sendiri) | ✅ (sendiri) | ❌ |
+| **Penjual** | ✅ | ✅ (miliknya) | ✅ (produknya) | ❌ | ❌ |
+| **Kurir** | ✅ | ❌ | ✅ (pengiriman) | ✅ (tujuan) | ❌ |
+| **Admin** | ✅ | ✅ (semua) | ✅ (semua) | ✅ (semua) | ✅ |
+
+---
+
+## 📦 Instalasi
+
+### Prerequisites
+- Node.js v14+
+- MySQL 8.0+ (XAMPP)
+- Browser modern
+
+### Setup Database
+
+```bash
+# Start XAMPP MySQL
+# Import database
+mysql -u root toko_online < toko_online.sql
+```
+
+### Setup Backend
+
+```bash
+cd backend
+npm install
+
+# Copy dan edit .env
+cp .env.example .env
+
+# Start server
+npm start
+```
+
+Expected output:
+```
+Server listening on 4000
+Database connected
+Added produk.kategori column
+Added produk.satuan column
+```
+
+### Setup Frontend
+
+Buka dengan Live Server atau langsung:
+```
+http://localhost:3000/home_final.html
+```
+
+---
+
+## 🔐 Membuat Admin
+
+### Via Script (Recommended)
+
+```bash
+node backend/create-admin.js
+```
+
+### Via Web
+
+1. Buka: `http://localhost:3000/registrasi-admin.html`
+2. Secret Key: `LAUTAN_KITA_ADMIN_2025`
+3. Isi form dan submit
+
+### Verifikasi
+
+```bash
+node backend/check-admin.js
+```
+
+---
+
+## 🎯 Testing
+
+### Test Flow Pembeli
+1. Register sebagai pembeli
+2. Login
+3. Tambah produk ke keranjang
+4. Checkout
+5. Upload bukti transfer
+6. Tracking pesanan
+
+### Test Flow Penjual
+1. Register sebagai penjual
+2. Login → Dashboard
+3. Tambah produk dengan foto
+4. Edit stok produk
+5. Lihat pesanan masuk
+
+### Test Flow Admin
+1. Login sebagai admin
+2. Kelola user (edit, verify)
+3. Lihat laporan transaksi
+4. Export CSV
+5. Moderasi ulasan
+
+---
+
+## 🐛 Troubleshooting
+
+### Backend tidak start
+```bash
+# Cek port 4000
+netstat -ano | findstr :4000
+
+# Kill process jika perlu
+taskkill /PID <PID> /F
+```
+
+### Database error
+1. Pastikan XAMPP MySQL running
+2. Cek kredensial di `backend/.env`
+3. Import `toko_online.sql`
+
+### Login gagal
+1. Cek email/password (case-sensitive)
+2. Cek token di localStorage (F12)
+3. Pastikan backend running
+
+**Lihat troubleshooting lengkap:** [`docs/TROUBLESHOOT-LOGIN-ADMIN.md`](docs/TROUBLESHOOT-LOGIN-ADMIN.md)
+
+---
+
+## 📁 Struktur Folder
+
+```
+lautan-kita/
+├── backend/              # Node.js backend
+│   ├── src/             # Source code
+│   ├── uploads/         # Upload files
+│   └── .env             # Config
+├── assets/              # Frontend assets
+├── img/                 # Images
+├── views/               # Additional pages
+├── docs/                # Documentation
+├── archive/             # Old files
+├── *.html               # Main pages
+└── toko_online.sql      # Database schema
+```
+
+---
+
+## 🔌 API Endpoints
+
+### Authentication
+```
+POST   /auth/register
+POST   /auth/login
+GET    /auth/me
+```
+
+### Products
+```
+GET    /products
+POST   /penjual/produk
+PATCH  /penjual/produk/:id
+```
+
+### Orders
+```
+POST   /orders/checkout
+GET    /orders
+POST   /orders/:id/cancel
+```
+
+### Admin
+```
+GET    /admin/users
+PATCH  /admin/users/:id
+GET    /admin/transactions
+GET    /admin/reviews
+```
+
+**Lihat API lengkap:** [`docs/COMPLETE-DOCUMENTATION.md#api-endpoints`](docs/COMPLETE-DOCUMENTATION.md#-api-endpoints)
+
+---
+
+## 📝 Changelog
+
+### Version 1.0.0 (10 Desember 2025)
+
+**Added:**
+- ✅ Dashboard role-based
+- ✅ Admin panel lengkap
+- ✅ Laporan transaksi & export CSV
+- ✅ Moderasi ulasan
+- ✅ Upload foto produk
+- ✅ Kurir privacy mode
+
+**Fixed:**
+- ✅ Role kurir registration
+- ✅ Admin login issues
+- ✅ Password validation
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines first.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 Team
+
+**Lautan Kita Development Team**
+
+---
+
+## 📞 Support
+
+- 📚 Documentation: [`docs/`](docs/)
+- 🐛 Issues: Create an issue
+- 💬 Contact: [email@example.com](mailto:email@example.com)
+
+---
+
+**Made with ❤️ by Lautan Kita Team**
+
+Last Updated: 10 Desember 2025

@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post('/payments', requireAuth, requireRole(['pembeli']), [
   body('pesanan_id').isInt({ min: 1 }),
-  body('metode').isIn(['BNI','BCA','Mandiri','COD'])
+  body('metode').isIn(['BNI', 'BCA', 'Mandiri', 'COD'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
@@ -28,7 +28,7 @@ router.post('/payments', requireAuth, requireRole(['pembeli']), [
   }
 });
 
-router.post('/payments/:id/confirm', requireAuth, requireRole(['pembeli','admin']), [param('id').isInt({ min: 1 })], async (req, res) => {
+router.post('/payments/:id/confirm', requireAuth, requireRole(['pembeli', 'admin']), [param('id').isInt({ min: 1 })], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
   const conn = await pool.getConnection();
@@ -44,11 +44,12 @@ router.post('/payments/:id/confirm', requireAuth, requireRole(['pembeli','admin'
       return res.status(200).json({ pembayaran_id: p[0].pembayaran_id, status_pembayaran: 'sudah_dibayar' });
     }
     await conn.query('UPDATE pembayaran SET status_pembayaran="sudah_dibayar", paid_at=NOW() WHERE pembayaran_id=?', [req.params.id]);
-    await conn.query('UPDATE pesanan SET status_pesanan="diproses" WHERE pesanan_id=? AND status_pesanan="menunggu"', [p[0].pesanan_id]);
+    // Update status pesanan ke 'pending' setelah pembayaran dikonfirmasi
+    await conn.query('UPDATE pesanan SET status_pesanan="pending" WHERE pesanan_id=?', [p[0].pesanan_id]);
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
   } finally {
     conn.release();

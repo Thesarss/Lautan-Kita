@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Penjual - Lautan Kita</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #d6d9ff;
+            color: #07304A;
+        }
+
+        .header {
+            background: #0077B6;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #0077B6;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn-success {
+            background: #10B981;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .welcome-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .welcome-card h2 {
+            color: #0077B6;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-card .icon {
+            font-size: 32px;
+            color: #0077B6;
+            margin-bottom: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #07304A;
+        }
+
+        .stat-card .label {
+            color: #64748B;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #64748B;
+        }
+
+        .tab.active {
+            color: #0077B6;
+            border-bottom-color: #0077B6;
+        }
+
+        .tab:hover {
+            color: #0077B6;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 16px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .product-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.3s;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .product-name {
+            font-weight: 700;
+            color: #07304A;
+            margin-bottom: 8px;
+        }
+
+        .product-price {
+            color: #0077B6;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .product-stock {
+            color: #64748B;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .action-btn.edit {
+            background: #0077B6;
+            color: white;
+        }
+
+        .action-btn.delete {
+            background: #EF4444;
+            color: white;
+        }
+
+        .order-item {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+        }
+
+        .order-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .order-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .order-id {
+            font-weight: 700;
+            color: #0077B6;
+        }
+
+        .order-details {
+            color: #64748B;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748B;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: auto;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0077B6;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #07304A;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .preview-image {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            margin-top: 8px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar input,
+        .filter-bar select {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .product-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .product-table thead {
+            background: #f8f9fa;
+        }
+
+        .product-table th {
+            padding: 14px;
+            text-align: left;
+            font-weight: 700;
+            color: #07304A;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .product-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .product-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .product-thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .product-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .view-btn.active {
+            background: #0077B6;
+            color: white;
+            border-color: #0077B6;
+        }
+    </style>
+    <script src="assets/js/api.js"></script>
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-store"></i> Dashboard Penjual</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='home_final.html'">
+                    <i class="fas fa-home"></i> Beranda
+                </button>
+                <button class="btn btn-success" onclick="openAddProductModal()">
+                    <i class="fas fa-plus"></i> Tambah Produk
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='views/profil.html'">
+                    <i class="fas fa-user"></i> Profil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-card">
+            <h2 id="welcomeName">Selamat Datang!</h2>
+            <p style="color: #64748B;">Kelola produk dan pantau pesanan masuk di sini.</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-box"></i></div>
+                <div class="value" id="statProducts">0</div>
+                <div class="label">Total Produk</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-check-circle"></i></div>
+                <div class="value" id="statActiveProducts">0</div>
+                <div class="label">Produk Aktif</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-shopping-cart"></i></div>
+                <div class="value" id="statOrders">0</div>
+                <div class="label">Pesanan Masuk</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-star"></i></div>
+                <div class="value">4.8</div>
+                <div class="label">Rating Toko</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('products')">Produk Saya</div>
+            <div class="tab" onclick="showTab('orders')">Pesanan Masuk</div>
+        </div>
+
+        <div class="card" id="productsView">
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setProductView('grid')">
+                    <i class="fas fa-th"></i> Grid
+                </button>
+                <button class="view-btn" onclick="setProductView('table')">
+                    <i class="fas fa-list"></i> Tabel
+                </button>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" id="searchProduct" placeholder="Cari produk..." onkeyup="filterProducts()">
+                <select id="filterStatus" onchange="filterProducts()">
+                    <option value="">Semua Status</option>
+                    <option value="aktif">Aktif</option>
+                    <option value="nonaktif">Nonaktif</option>
+                </select>
+            </div>
+
+            <div class="product-grid" id="productsContainer">
+                <div class="empty-state">
+                    <i class="fas fa-box"></i>
+                    <p>Memuat produk...</p>
+                </div>
+            </div>
+
+            <div id="productsTableContainer" style="display:none;">
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>Produk</th>
+                            <th>Kategori</th>
+                            <th>Harga / Satuan</th>
+                            <th>Stok</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center;">Memuat produk...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" id="ordersView" style="display:none;">
+            <div class="filter-bar" style="margin-bottom: 20px;">
+                <select id="filterOrderStatus" onchange="filterOrders()">
+                    <option value="">Semua Status</option>
+                    <option value="pending">Menunggu Konfirmasi</option>
+                    <option value="dikemas">Sedang Dikemas</option>
+                    <option value="dikirim">Dalam Pengiriman</option>
+                    <option value="selesai">Selesai</option>
+                    <option value="dibatalkan">Dibatalkan</option>
+                </select>
+            </div>
+            <div id="ordersContainer">
+                <div class="empty-state">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>Memuat pesanan...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tambah/Edit Produk -->
+    <div class="modal" id="productModal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Tambah Produk Baru</div>
+            <form id="productForm">
+                <div class="form-group">
+                    <label>Nama Produk *</label>
+                    <input type="text" id="productName" placeholder="Contoh: Ikan Tongkol Segar" required>
+                </div>
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <select id="productCategory">
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="ikan">Ikan</option>
+                        <option value="udang">Udang</option>
+                        <option value="cumi">Cumi-cumi</option>
+                        <option value="kerang">Kerang</option>
+                        <option value="lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Deskripsi</label>
+                    <textarea id="productDesc"
+                        placeholder="Contoh: Ikan tongkol segar hasil tangkapan pagi hari, cocok untuk gulai atau balado."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Harga per Satuan (Rp) *</label>
+                    <input type="number" id="productPrice" placeholder="35000" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Satuan *</label>
+                    <select id="productUnit" required>
+                        <option value="kg">Kilogram (kg)</option>
+                        <option value="ons">Ons</option>
+                        <option value="ikat">Ikat</option>
+                        <option value="pcs">Pcs</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Stok Tersedia *</label>
+                    <input type="number" id="productStock" placeholder="20" required min="0">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="productStatus">
+                        <option value="aktif">Aktif (ditampilkan)</option>
+                        <option value="nonaktif">Nonaktif (tidak ditampilkan)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Foto Produk</label>
+                    <input type="file" id="productImage" accept="image/*" onchange="previewImage(event)">
+                    <small style="color: #64748B; display: block; margin-top: 4px;">Format: JPG/PNG, maks 2MB</small>
+                </div>
+                <div class="form-group">
+                    <label>Preview Foto</label>
+                    <img id="previewFoto" src="img/logo.png" alt="Preview" class="preview-image">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+        let myProducts = [];
+        let myOrders = [];
+        let currentView = 'products';
+        let editingProductId = null;
+        let productViewMode = 'grid';
+
+        async function init() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const resp = await API.authFetch('/auth/me');
+                if (resp.ok) {
+                    const user = await resp.json();
+                    if (user.role !== 'penjual') {
+                        API.showModal({
+                            title: 'Akses Ditolak',
+                            message: 'Halaman ini hanya untuk penjual.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: () => { window.location.href = 'home_final.html'; } }]
+                        });
+                        return;
+                    }
+                    document.getElementById('welcomeName').textContent = `Selamat Datang, ${user.nama}!`;
+                }
+            } catch (e) {
+                console.error('Failed to load user:', e);
+            }
+
+            await loadProducts();
+            await loadOrders();
+        }
+
+        async function loadProducts() {
+            try {
+                const resp = await API.authFetch('/penjual/produk');
+                if (!resp.ok) throw new Error('Failed to load products');
+                myProducts = await resp.json();
+                document.getElementById('statProducts').textContent = myProducts.length;
+
+                // Count active products
+                const activeCount = myProducts.filter(p => p.status === 'aktif').length;
+                document.getElementById('statActiveProducts').textContent = activeCount;
+
+                renderProducts();
+            } catch (e) {
+                document.getElementById('productsContainer').innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Gagal memuat produk.</p>
+          </div>
+        `;
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const resp = await API.authFetch('/penjual/orders');
+                if (!resp.ok) throw new Error('Failed to load orders');
+                myOrders = await resp.json();
+                document.getElementById('statOrders').textContent = myOrders.length;
+
+                // Calculate revenue
+                const revenue = myOrders.reduce((sum, order) => sum + Number(order.subtotal || 0), 0);
+                document.getElementById('statRevenue').textContent = `Rp ${revenue.toLocaleString('id-ID')}`;
+
+                renderOrders();
+            } catch (e) {
+                document.getElementById('ordersContainer').innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Gagal memuat pesanan.</p>
+          </div>
+        `;
+            }
+        }
+
+        function showTab(view) {
+            currentView = view;
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('productsView').style.display = view === 'products' ? 'block' : 'none';
+            document.getElementById('ordersView').style.display = view === 'orders' ? 'block' : 'none';
+        }
+
+        function renderProducts() {
+            if (productViewMode === 'grid') {
+                renderProductsGrid();
+            } else {
+                renderProductsTable();
+            }
+        }
+
+        function renderProductsGrid() {
+            const container = document.getElementById('productsContainer');
+
+            if (myProducts.length === 0) {
+                container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-box"></i>
+            <p>Belum ada produk. Klik "Tambah Produk" untuk mulai berjualan.</p>
+          </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = myProducts.map(product => `
+        <div class="product-card">
+          <img src="${product.photo_url ? (API_BASE + product.photo_url) : 'img/logo.png'}" 
+               alt="${product.nama_produk}" class="product-img" 
+               onerror="this.src='img/logo.png'">
+          <div class="product-name">${product.nama_produk}</div>
+          <div class="product-price">Rp ${Number(product.harga).toLocaleString('id-ID')}/kg</div>
+          <div class="product-stock">Stok: ${product.stok} kg</div>
+          <div class="product-stock" style="color: ${product.status === 'aktif' ? '#10B981' : '#EF4444'}">
+            Status: ${product.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+          </div>
+          <div class="product-actions">
+            <button class="action-btn edit" onclick="editProduct(${product.produk_id})">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="action-btn delete" onclick="deleteProduct(${product.produk_id})">
+              <i class="fas fa-trash"></i> Hapus
+            </button>
+          </div>
+        </div>
+      `).join('');
+        }
+
+        function renderProductsTable() {
+            const tbody = document.getElementById('productsTableBody');
+
+            if (myProducts.length === 0) {
+                tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center;">
+              Belum ada produk. Klik "Tambah Produk" untuk mulai berjualan.
+            </td>
+          </tr>
+        `;
+                return;
+            }
+
+            tbody.innerHTML = myProducts.map(product => `
+        <tr>
+          <td>
+            <div class="product-info">
+              <img src="${product.photo_url ? (API_BASE + product.photo_url) : 'img/logo.png'}" 
+                   alt="${product.nama_produk}" class="product-thumb" 
+                   onerror="this.src='img/logo.png'">
+              <div>
+                <div style="font-weight: 600;">${product.nama_produk}</div>
+                <small style="color: #64748B;">ID: ${product.produk_id}</small>
+              </div>
+            </div>
+          </td>
+          <td>${product.kategori || '-'}</td>
+          <td>Rp ${Number(product.harga).toLocaleString('id-ID')} / kg</td>
+          <td>${product.stok}</td>
+          <td>
+            <span class="badge ${product.status === 'aktif' ? 'badge-success' : 'badge-warning'}">
+              ${product.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
+            </span>
+          </td>
+          <td>
+            <button class="action-btn edit" onclick="editProduct(${product.produk_id})" style="margin-right: 4px;">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="action-btn delete" onclick="deleteProduct(${product.produk_id})">
+              <i class="fas fa-trash"></i> Hapus
+            </button>
+          </td>
+        </tr>
+      `).join('');
+        }
+
+        function setProductView(mode) {
+            productViewMode = mode;
+
+            // Update button states
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.view-btn').classList.add('active');
+
+            // Toggle containers
+            if (mode === 'grid') {
+                document.getElementById('productsContainer').style.display = 'grid';
+                document.getElementById('productsTableContainer').style.display = 'none';
+            } else {
+                document.getElementById('productsContainer').style.display = 'none';
+                document.getElementById('productsTableContainer').style.display = 'block';
+            }
+
+            renderProducts();
+        }
+
+        function filterProducts() {
+            const searchTerm = document.getElementById('searchProduct').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            const filtered = myProducts.filter(product => {
+                const matchSearch = product.nama_produk.toLowerCase().includes(searchTerm);
+                const matchStatus = !statusFilter || product.status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+
+            // Temporarily replace myProducts for rendering
+            const originalProducts = myProducts;
+            myProducts = filtered;
+            renderProducts();
+            myProducts = originalProducts;
+        }
+
+        function renderOrders() {
+            const container = document.getElementById('ordersContainer');
+            const filterStatus = document.getElementById('filterOrderStatus')?.value || '';
+
+            if (myOrders.length === 0) {
+                container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-shopping-cart"></i>
+            <p>Belum ada pesanan masuk.</p>
+          </div>
+        `;
+                return;
+            }
+
+            // Group orders by pesanan_id
+            const groupedOrders = {};
+            myOrders.forEach(order => {
+                if (!groupedOrders[order.pesanan_id]) {
+                    groupedOrders[order.pesanan_id] = {
+                        pesanan_id: order.pesanan_id,
+                        status_pesanan: order.status_pesanan,
+                        created_at: order.created_at,
+                        pembeli_id: order.pembeli_id,
+                        total: 0,
+                        items: []
+                    };
+                }
+                groupedOrders[order.pesanan_id].items.push(order);
+                groupedOrders[order.pesanan_id].total += Number(order.subtotal || 0);
+            });
+
+            // Filter by status
+            let filtered = Object.values(groupedOrders);
+            if (filterStatus) {
+                filtered = filtered.filter(o => o.status_pesanan === filterStatus);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-filter"></i>
+            <p>Tidak ada pesanan dengan status ini.</p>
+          </div>
+        `;
+                return;
+            }
+
+            const statusMap = {
+                'pending': { label: 'Menunggu Konfirmasi', color: '#F59E0B', icon: 'clock' },
+                'dikemas': { label: 'Sedang Dikemas', color: '#3B82F6', icon: 'box' },
+                'dikirim': { label: 'Dalam Pengiriman', color: '#8B5CF6', icon: 'truck' },
+                'selesai': { label: 'Selesai', color: '#10B981', icon: 'check-circle' },
+                'dibatalkan': { label: 'Dibatalkan', color: '#EF4444', icon: 'times-circle' }
+            };
+
+            container.innerHTML = filtered.map(order => {
+                const status = statusMap[order.status_pesanan] || statusMap['pending'];
+                return `
+        <div class="order-item" style="border-left: 4px solid ${status.color};">
+          <div class="order-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <span class="order-id" style="font-size: 18px; font-weight: 700; color: #0077B6;">
+                Pesanan #${order.pesanan_id}
+              </span>
+              <span style="margin-left: 12px; color: #64748B; font-size: 14px;">
+                <i class="fas fa-calendar"></i> ${new Date(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            </div>
+            <div style="padding: 6px 12px; background: ${status.color}20; color: ${status.color}; border-radius: 20px; font-weight: 600; font-size: 14px;">
+              <i class="fas fa-${status.icon}"></i> ${status.label}
+            </div>
+          </div>
+          
+          <div class="order-details" style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h4 style="margin-bottom: 12px; color: #07304A;">Produk yang Dipesan:</h4>
+            ${order.items.map(item => `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; padding: 8px; background: white; border-radius: 6px;">
+                <div>
+                  <strong style="color: #07304A;">${item.nama_produk}</strong>
+                  <div style="font-size: 14px; color: #64748B; margin-top: 4px;">
+                    ${item.jumlah} kg × Rp ${Number(item.subtotal / item.jumlah).toLocaleString('id-ID')}
+                  </div>
+                </div>
+                <div style="font-weight: 600; color: #0077B6;">
+                  Rp ${Number(item.subtotal).toLocaleString('id-ID')}
+                </div>
+              </div>
+            `).join('')}
+            <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #e5e7eb; font-size: 16px; font-weight: 700;">
+              <span style="color: #07304A;">Total:</span>
+              <span style="color: #0077B6;">Rp ${order.total.toLocaleString('id-ID')}</span>
+            </div>
+          </div>
+
+          ${order.status_pesanan === 'pending' ? `
+            <div style="display: flex; gap: 12px;">
+              <button class="btn btn-success" onclick="packOrder(${order.pesanan_id})" style="flex: 1;">
+                <i class="fas fa-box"></i> Kemas Pesanan
+              </button>
+            </div>
+          ` : order.status_pesanan === 'dikemas' ? `
+            <div style="padding: 12px; background: #DBEAFE; border-radius: 8px; color: #1E40AF;">
+              <i class="fas fa-info-circle"></i> Pesanan sedang menunggu kurir untuk diambil
+            </div>
+          ` : order.status_pesanan === 'dikirim' ? `
+            <div style="padding: 12px; background: #E0E7FF; border-radius: 8px; color: #4338CA;">
+              <i class="fas fa-truck"></i> Pesanan sedang dalam pengiriman
+            </div>
+          ` : order.status_pesanan === 'selesai' ? `
+            <div style="padding: 12px; background: #D1FAE5; border-radius: 8px; color: #065F46;">
+              <i class="fas fa-check-circle"></i> Pesanan telah selesai
+            </div>
+          ` : ''}
+        </div>
+      `;
+            }).join('');
+        }
+
+        function filterOrders() {
+            renderOrders();
+        }
+
+        async function packOrder(orderId) {
+            if (!confirm('Konfirmasi bahwa pesanan sudah dikemas dan siap untuk dikirim?')) return;
+
+            try {
+                const resp = await API.authFetch(`/orders/${orderId}/pack`, {
+                    method: 'PATCH'
+                });
+
+                if (resp.ok) {
+                    API.showModal({
+                        title: 'Berhasil',
+                        message: 'Pesanan berhasil dikemas! Menunggu kurir untuk mengambil.',
+                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); loadOrders(); } }]
+                    });
+                } else {
+                    const error = await resp.json();
+                    throw new Error(error.error || 'Gagal mengemas pesanan');
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: e.message || 'Gagal mengemas pesanan' });
+            }
+        }
+
+        function openAddProductModal() {
+            editingProductId = null;
+            document.getElementById('modalTitle').textContent = 'Tambah Produk Baru';
+            document.getElementById('productForm').reset();
+            document.getElementById('productModal').classList.add('active');
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').classList.remove('active');
+        }
+
+        async function editProduct(productId) {
+            const product = myProducts.find(p => p.produk_id === productId);
+            if (!product) return;
+
+            editingProductId = productId;
+            document.getElementById('modalTitle').textContent = 'Edit Produk';
+            document.getElementById('productName').value = product.nama_produk;
+            document.getElementById('productCategory').value = product.kategori || '';
+            document.getElementById('productDesc').value = product.deskripsi || '';
+            document.getElementById('productPrice').value = product.harga;
+            document.getElementById('productUnit').value = product.satuan || 'kg';
+            document.getElementById('productStock').value = product.stok;
+            document.getElementById('productStatus').value = product.status || 'aktif';
+
+            // Set preview image
+            if (product.photo_url) {
+                document.getElementById('previewFoto').src = API_BASE + product.photo_url;
+            } else {
+                document.getElementById('previewFoto').src = 'img/logo.png';
+            }
+
+            document.getElementById('productModal').classList.add('active');
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('previewFoto').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('productName').value.trim();
+            const category = document.getElementById('productCategory').value.trim();
+            const desc = document.getElementById('productDesc').value.trim();
+            const price = Number(document.getElementById('productPrice').value);
+            const unit = document.getElementById('productUnit').value;
+            const stock = Number(document.getElementById('productStock').value);
+            const status = document.getElementById('productStatus').value;
+            const imageFile = document.getElementById('productImage').files[0];
+
+            let imageBase64 = null;
+            if (imageFile) {
+                imageBase64 = await fileToBase64(imageFile);
+            }
+
+            const data = {
+                nama_produk: name,
+                kategori: category || undefined,
+                deskripsi: desc || undefined,
+                harga: price,
+                satuan: unit,
+                stok: stock,
+                status: status,
+                image: imageBase64
+            };
+
+            try {
+                let resp;
+                if (editingProductId) {
+                    resp = await API.authFetch(`/penjual/produk/${editingProductId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    resp = await API.authFetch('/penjual/produk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                if (resp.ok) {
+                    closeProductModal();
+                    API.showModal({
+                        title: 'Berhasil',
+                        message: editingProductId ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan!',
+                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); loadProducts(); } }]
+                    });
+                } else {
+                    API.showModal({ title: 'Error', message: 'Gagal menyimpan produk.' });
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
+            }
+        });
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function deleteProduct(productId) {
+            API.showModal({
+                title: 'Hapus Produk',
+                message: 'Apakah Anda yakin ingin menghapus produk ini?',
+                actions: [
+                    { label: 'Batal', variant: 'secondary', handler: API.hideModal },
+                    {
+                        label: 'Ya, Hapus',
+                        variant: 'primary',
+                        handler: () => {
+                            API.hideModal();
+                            API.showModal({ title: 'Info', message: 'Fitur hapus produk akan segera tersedia.' });
+                        }
+                    }
+                ]
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

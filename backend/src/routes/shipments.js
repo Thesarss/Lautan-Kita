@@ -7,7 +7,7 @@ const { body, param, validationResult } = require('express-validator');
 
 const router = express.Router();
 
-router.post('/shipments/:orderId/create', requireAuth, requireRole(['admin','penjual']), [
+router.post('/shipments/:orderId/create', requireAuth, requireRole(['admin', 'penjual']), [
   param('orderId').isInt({ min: 1 }),
   body('kurir_id').optional().isInt({ min: 1 }),
   body('no_resi').optional().isString().isLength({ min: 3, max: 100 }).trim()
@@ -46,14 +46,30 @@ router.get('/shipments/:orderId', requireAuth, [param('orderId').isInt({ min: 1 
 router.get('/kurir/shipments', requireAuth, requireRole(['kurir']), async (req, res) => {
   const conn = await pool.getConnection();
   try {
-    const [rows] = await conn.query('SELECT peneriman_id,pesanan_id,no_resi,status_kirim,updated_at FROM pengiriman WHERE kurir_id=? ORDER BY updated_at DESC', [req.user.id]);
+    // Kurir hanya bisa lihat: ID pengiriman, ID pesanan, alamat kirim, no resi, status
+    // TIDAK bisa lihat: detail produk, harga, nama pembeli
+    const [rows] = await conn.query(
+      'SELECT g.peneriman_id AS pengiriman_id, g.pesanan_id, p.alamat_kirim, g.no_resi, g.status_kirim, g.updated_at AS created_at FROM pengiriman g JOIN pesanan p ON p.pesanan_id = g.pesanan_id WHERE g.kurir_id=? OR g.kurir_id IS NULL ORDER BY g.updated_at DESC',
+      [req.user.id]
+    );
     res.json(rows);
   } finally { conn.release(); }
 });
 
-router.patch('/shipments/:id/status', requireAuth, requireRole(['admin','penjual','kurir']), [
+// Endpoint untuk semua pengiriman (admin/penjual)
+router.get('/shipments', requireAuth, requireRole(['admin', 'penjual']), async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const [rows] = await conn.query(
+      'SELECT g.peneriman_id, g.pesanan_id, g.kurir_id, u.nama AS kurir_nama, g.no_resi, g.status_kirim, g.updated_at, p.alamat_kirim FROM pengiriman g LEFT JOIN user u ON u.user_id=g.kurir_id JOIN pesanan p ON p.pesanan_id=g.pesanan_id ORDER BY g.updated_at DESC'
+    );
+    res.json(rows);
+  } finally { conn.release(); }
+});
+
+router.patch('/shipments/:id/status', requireAuth, requireRole(['admin', 'penjual', 'kurir']), [
   param('id').isInt({ min: 1 }),
-  body('status_kirim').isIn(['diproses','dikirim','diterima']),
+  body('status_kirim').isIn(['diproses', 'dikirim', 'diterima']),
   body('no_resi').optional().isString().isLength({ min: 3, max: 100 }).trim()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -74,7 +90,7 @@ router.patch('/shipments/:id/status', requireAuth, requireRole(['admin','penjual
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
   } finally {
     conn.release();

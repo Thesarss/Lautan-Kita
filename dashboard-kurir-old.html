@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Kurir - Lautan Kita</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #d6d9ff;
+            color: #07304A;
+        }
+
+        .header {
+            background: #0077B6;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #0077B6;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .welcome-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .welcome-card h2 {
+            color: #0077B6;
+            margin-bottom: 8px;
+        }
+
+        .alert-info {
+            background: #DBEAFE;
+            border-left: 4px solid #0077B6;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .alert-info i {
+            color: #0077B6;
+            margin-right: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-card .icon {
+            font-size: 32px;
+            color: #0077B6;
+            margin-bottom: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #07304A;
+        }
+
+        .stat-card .label {
+            color: #64748B;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #64748B;
+        }
+
+        .tab.active {
+            color: #0077B6;
+            border-bottom-color: #0077B6;
+        }
+
+        .tab:hover {
+            color: #0077B6;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 16px;
+        }
+
+        .delivery-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+        }
+
+        .delivery-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .delivery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .delivery-id {
+            font-weight: 700;
+            color: #0077B6;
+            font-size: 18px;
+        }
+
+        .delivery-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-diproses {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .status-dikirim {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-diterima {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .delivery-info {
+            margin: 12px 0;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            color: #64748B;
+        }
+
+        .info-row i {
+            width: 24px;
+            margin-right: 8px;
+            color: #0077B6;
+        }
+
+        .info-row strong {
+            color: #07304A;
+        }
+
+        .address-box {
+            background: #F8FAFC;
+            border-left: 4px solid #0077B6;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .action-btn.primary {
+            background: #0077B6;
+            color: white;
+        }
+
+        .action-btn.success {
+            background: #10B981;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748B;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0077B6;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #07304A;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+    </style>
+    <script src="assets/js/api.js"></script>
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-truck"></i> Dashboard Kurir</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='home_final.html'">
+                    <i class="fas fa-home"></i> Beranda
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='views/profil.html'">
+                    <i class="fas fa-user"></i> Profil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-card">
+            <h2 id="welcomeName">Selamat Datang!</h2>
+            <p style="color: #64748B;">Kelola pengiriman dan update status pesanan di sini.</p>
+        </div>
+
+        <div class="alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Informasi Privasi:</strong> Sebagai kurir, Anda hanya dapat melihat informasi pengiriman (alamat
+            tujuan dan nomor resi).
+            Detail produk dan harga tidak ditampilkan untuk menjaga privasi pelanggan.
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-clock"></i></div>
+                <div class="value" id="statPending">0</div>
+                <div class="label">Menunggu Pickup</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-truck"></i></div>
+                <div class="value" id="statInTransit">0</div>
+                <div class="label">Dalam Pengiriman</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-check-circle"></i></div>
+                <div class="value" id="statDelivered">0</div>
+                <div class="label">Terkirim Hari Ini</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-box"></i></div>
+                <div class="value" id="statTotal">0</div>
+                <div class="label">Total Pengiriman</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('pending')">Menunggu Pickup</div>
+            <div class="tab" onclick="showTab('transit')">Dalam Pengiriman</div>
+            <div class="tab" onclick="showTab('delivered')">Terkirim</div>
+        </div>
+
+        <div class="card" id="deliveriesContainer">
+            <div class="empty-state">
+                <i class="fas fa-truck"></i>
+                <p>Memuat data pengiriman...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Update Status -->
+    <div class="modal" id="updateModal">
+        <div class="modal-content">
+            <div class="modal-title">Update Status Pengiriman</div>
+            <form id="updateForm">
+                <div class="form-group">
+                    <label>Nomor Resi</label>
+                    <input type="text" id="resiInput" placeholder="Masukkan nomor resi">
+                </div>
+                <div class="form-group">
+                    <label>Status Pengiriman *</label>
+                    <select id="statusInput" required>
+                        <option value="">Pilih Status</option>
+                        <option value="diproses">Diproses (Pickup)</option>
+                        <option value="dikirim">Dalam Pengiriman</option>
+                        <option value="diterima">Terkirim</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">Batal</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+        let allDeliveries = [];
+        let currentFilter = 'pending';
+        let currentShipmentId = null;
+
+        async function init() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const resp = await API.authFetch('/auth/me');
+                if (resp.ok) {
+                    const user = await resp.json();
+                    if (user.role !== 'kurir') {
+                        API.showModal({
+                            title: 'Akses Ditolak',
+                            message: 'Halaman ini hanya untuk kurir.',
+                            actions: [{ label: 'OK', variant: 'primary', handler: () => { window.location.href = 'home_final.html'; } }]
+                        });
+                        return;
+                    }
+                    document.getElementById('welcomeName').textContent = `Selamat Datang, ${user.nama}!`;
+                }
+            } catch (e) {
+                console.error('Failed to load user:', e);
+            }
+
+            await loadDeliveries();
+        }
+
+        async function loadDeliveries() {
+            try {
+                // Untuk saat ini, kita ambil dari endpoint shipments
+                // Backend perlu endpoint khusus untuk kurir: GET /kurir/shipments
+                const resp = await API.authFetch('/shipments');
+                if (!resp.ok) {
+                    // Fallback: gunakan data dummy untuk demo
+                    allDeliveries = generateDummyDeliveries();
+                } else {
+                    allDeliveries = await resp.json();
+                }
+
+                updateStats();
+                renderDeliveries();
+            } catch (e) {
+                // Gunakan data dummy untuk demo
+                allDeliveries = generateDummyDeliveries();
+                updateStats();
+                renderDeliveries();
+            }
+        }
+
+        function generateDummyDeliveries() {
+            return [
+                {
+                    pengiriman_id: 1,
+                    pesanan_id: 101,
+                    alamat_kirim: 'Jl. Merdeka No. 123, Tanjung Pinang, Kepulauan Riau',
+                    no_resi: null,
+                    status_kirim: 'diproses',
+                    created_at: new Date().toISOString()
+                },
+                {
+                    pengiriman_id: 2,
+                    pesanan_id: 102,
+                    alamat_kirim: 'Jl. Sudirman No. 45, Batam, Kepulauan Riau',
+                    no_resi: 'JNE123456789',
+                    status_kirim: 'dikirim',
+                    created_at: new Date(Date.now() - 3600000).toISOString()
+                },
+                {
+                    pengiriman_id: 3,
+                    pesanan_id: 103,
+                    alamat_kirim: 'Jl. Ahmad Yani No. 78, Bintan, Kepulauan Riau',
+                    no_resi: 'JNE987654321',
+                    status_kirim: 'diterima',
+                    created_at: new Date(Date.now() - 7200000).toISOString()
+                }
+            ];
+        }
+
+        function updateStats() {
+            const stats = {
+                diproses: 0,
+                dikirim: 0,
+                diterima: 0
+            };
+
+            allDeliveries.forEach(delivery => {
+                if (stats.hasOwnProperty(delivery.status_kirim)) {
+                    stats[delivery.status_kirim]++;
+                }
+            });
+
+            document.getElementById('statPending').textContent = stats.diproses;
+            document.getElementById('statInTransit').textContent = stats.dikirim;
+            document.getElementById('statDelivered').textContent = stats.diterima;
+            document.getElementById('statTotal').textContent = allDeliveries.length;
+        }
+
+        function showTab(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            renderDeliveries();
+        }
+
+        function renderDeliveries() {
+            const container = document.getElementById('deliveriesContainer');
+            let deliveries = allDeliveries;
+
+            // Filter berdasarkan tab
+            const statusMap = {
+                'pending': 'diproses',
+                'transit': 'dikirim',
+                'delivered': 'diterima'
+            };
+
+            if (currentFilter !== 'all') {
+                deliveries = allDeliveries.filter(d => d.status_kirim === statusMap[currentFilter]);
+            }
+
+            if (deliveries.length === 0) {
+                container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-truck"></i>
+            <p>Tidak ada pengiriman dengan status ini.</p>
+          </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = deliveries.map(delivery => `
+        <div class="delivery-item">
+          <div class="delivery-header">
+            <div>
+              <div class="delivery-id">Pengiriman #${delivery.pengiriman_id}</div>
+              <div style="color: #64748B; font-size: 14px; margin-top: 4px;">
+                Pesanan #${delivery.pesanan_id}
+              </div>
+            </div>
+            <span class="delivery-status status-${delivery.status_kirim}">
+              ${formatStatus(delivery.status_kirim)}
+            </span>
+          </div>
+          
+          <div class="delivery-info">
+            <div class="info-row">
+              <i class="fas fa-calendar"></i>
+              <span>${formatDate(delivery.created_at)}</span>
+            </div>
+            
+            <div class="info-row">
+              <i class="fas fa-map-marker-alt"></i>
+              <div>
+                <strong>Alamat Tujuan:</strong>
+                <div class="address-box">${delivery.alamat_kirim || 'Alamat belum tersedia'}</div>
+              </div>
+            </div>
+            
+            <div class="info-row">
+              <i class="fas fa-barcode"></i>
+              <div>
+                <strong>Nomor Resi:</strong> 
+                ${delivery.no_resi || '<span style="color: #EF4444;">Belum ada resi</span>'}
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+            <button class="action-btn primary" onclick="openUpdateModal(${delivery.pengiriman_id}, '${delivery.no_resi || ''}', '${delivery.status_kirim}')">
+              <i class="fas fa-edit"></i> Update Status
+            </button>
+            ${delivery.status_kirim === 'dikirim' ? `
+              <button class="action-btn success" onclick="markAsDelivered(${delivery.pengiriman_id})">
+                <i class="fas fa-check"></i> Tandai Terkirim
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+        }
+
+        function formatStatus(status) {
+            const statusMap = {
+                'diproses': 'Menunggu Pickup',
+                'dikirim': 'Dalam Pengiriman',
+                'diterima': 'Terkirim'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function openUpdateModal(shipmentId, currentResi, currentStatus) {
+            currentShipmentId = shipmentId;
+            document.getElementById('resiInput').value = currentResi;
+            document.getElementById('statusInput').value = currentStatus;
+            document.getElementById('updateModal').classList.add('active');
+        }
+
+        function closeUpdateModal() {
+            document.getElementById('updateModal').classList.remove('active');
+        }
+
+        document.getElementById('updateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const resi = document.getElementById('resiInput').value.trim();
+            const status = document.getElementById('statusInput').value;
+
+            if (!status) {
+                API.showModal({ title: 'Error', message: 'Pilih status pengiriman.' });
+                return;
+            }
+
+            try {
+                const resp = await API.authFetch(`/shipments/${currentShipmentId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        no_resi: resi || undefined,
+                        status_kirim: status
+                    })
+                });
+
+                if (resp.ok) {
+                    closeUpdateModal();
+                    API.showModal({
+                        title: 'Berhasil',
+                        message: 'Status pengiriman berhasil diperbarui!',
+                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); loadDeliveries(); } }]
+                    });
+                } else {
+                    API.showModal({ title: 'Error', message: 'Gagal memperbarui status.' });
+                }
+            } catch (e) {
+                // Demo mode: update local data
+                const delivery = allDeliveries.find(d => d.pengiriman_id === currentShipmentId);
+                if (delivery) {
+                    delivery.no_resi = resi;
+                    delivery.status_kirim = status;
+                    closeUpdateModal();
+                    API.showModal({
+                        title: 'Berhasil (Demo)',
+                        message: 'Status pengiriman berhasil diperbarui! (Mode Demo)',
+                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); updateStats(); renderDeliveries(); } }]
+                    });
+                }
+            }
+        });
+
+        async function markAsDelivered(shipmentId) {
+            API.showModal({
+                title: 'Konfirmasi',
+                message: 'Tandai pengiriman ini sebagai terkirim?',
+                actions: [
+                    { label: 'Batal', variant: 'secondary', handler: API.hideModal },
+                    {
+                        label: 'Ya, Terkirim',
+                        variant: 'primary',
+                        handler: async () => {
+                            API.hideModal();
+                            try {
+                                const resp = await API.authFetch(`/shipments/${shipmentId}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status_kirim: 'diterima' })
+                                });
+
+                                if (resp.ok) {
+                                    API.showModal({
+                                        title: 'Berhasil',
+                                        message: 'Pengiriman ditandai sebagai terkirim!',
+                                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); loadDeliveries(); } }]
+                                    });
+                                } else {
+                                    API.showModal({ title: 'Error', message: 'Gagal memperbarui status.' });
+                                }
+                            } catch (e) {
+                                // Demo mode
+                                const delivery = allDeliveries.find(d => d.pengiriman_id === shipmentId);
+                                if (delivery) {
+                                    delivery.status_kirim = 'diterima';
+                                    API.showModal({
+                                        title: 'Berhasil (Demo)',
+                                        message: 'Pengiriman ditandai sebagai terkirim! (Mode Demo)',
+                                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); updateStats(); renderDeliveries(); } }]
+                                    });
+                                }
+                            }
+                        }
+                    }
+                ]
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

@@ -15,30 +15,78 @@ router.post(
     body('nama').isString().isLength({ min: 2 }).trim(),
     body('email').isEmail().normalizeEmail(),
     body('password').isString().isLength({ min: 8 }),
-    body('role').isIn(['pembeli', 'penjual', 'admin', 'kurir'])
+    body('role').isIn(['pembeli', 'penjual', 'kurir'])
   ],
   async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
-  const { nama, email, password, role } = req.body;
-  try {
-    const conn = await pool.getConnection();
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+    const { nama, email, password, role } = req.body;
     try {
-      const [u] = await conn.query('SELECT user_id FROM user WHERE email=? LIMIT 1', [email]);
-      if (u.length) return res.status(409).json({ error: 'email_exists' });
-      const hash = await bcrypt.hash(password, 10);
-      await conn.query('INSERT INTO user (nama,email,password_hash,role,verified) VALUES (?,?,?,?,?)', [nama, email, hash, role, 0]);
-      const [rows] = await conn.query('SELECT user_id, role FROM user WHERE email=? LIMIT 1', [email]);
-      const user = rows[0];
-      const token = jwt.sign({ id: user.user_id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '2h' });
-      res.json({ token });
-    } finally {
-      conn.release();
+      const conn = await pool.getConnection();
+      try {
+        const [u] = await conn.query('SELECT user_id FROM user WHERE email=? LIMIT 1', [email]);
+        if (u.length) return res.status(409).json({ error: 'email_exists' });
+        const hash = await bcrypt.hash(password, 10);
+        await conn.query('INSERT INTO user (nama,email,password_hash,role,verified) VALUES (?,?,?,?,?)', [nama, email, hash, role, 0]);
+        const [rows] = await conn.query('SELECT user_id, role FROM user WHERE email=? LIMIT 1', [email]);
+        const user = rows[0];
+        const token = jwt.sign({ id: user.user_id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '2h' });
+        res.json({ token });
+      } finally {
+        conn.release();
+      }
+    } catch (e) {
+      res.status(500).json({ error: 'db_unavailable' });
     }
-  } catch (e) {
-    res.status(500).json({ error: 'db_unavailable' });
-  }
-});
+  });
+
+// Endpoint khusus untuk registrasi admin (hanya bisa diakses jika belum ada admin)
+router.post(
+  '/register-admin',
+  [
+    body('nama').isString().isLength({ min: 2 }).trim(),
+    body('email').isEmail().normalizeEmail(),
+    body('password').isString().isLength({ min: 8 }),
+    body('secret_key').isString()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+
+    const { nama, email, password, secret_key } = req.body;
+
+    // Secret key untuk keamanan (bisa diubah di .env)
+    const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY || 'LAUTAN_KITA_ADMIN_2025';
+
+    if (secret_key !== ADMIN_SECRET) {
+      return res.status(403).json({ error: 'invalid_secret_key' });
+    }
+
+    try {
+      const conn = await pool.getConnection();
+      try {
+        // Cek apakah sudah ada admin
+        const [admins] = await conn.query('SELECT user_id FROM user WHERE role="admin" LIMIT 1');
+        if (admins.length > 0) {
+          return res.status(403).json({ error: 'admin_already_exists', message: 'Admin sudah ada. Hubungi admin untuk membuat akun admin baru.' });
+        }
+
+        const [u] = await conn.query('SELECT user_id FROM user WHERE email=? LIMIT 1', [email]);
+        if (u.length) return res.status(409).json({ error: 'email_exists' });
+
+        const hash = await bcrypt.hash(password, 10);
+        await conn.query('INSERT INTO user (nama,email,password_hash,role,verified) VALUES (?,?,?,?,?)', [nama, email, hash, 'admin', 1]);
+        const [rows] = await conn.query('SELECT user_id, role FROM user WHERE email=? LIMIT 1', [email]);
+        const user = rows[0];
+        const token = jwt.sign({ id: user.user_id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '2h' });
+        res.json({ token, message: 'Admin berhasil dibuat' });
+      } finally {
+        conn.release();
+      }
+    } catch (e) {
+      res.status(500).json({ error: 'db_unavailable' });
+    }
+  });
 
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
@@ -132,13 +180,13 @@ router.post('/avatar', requireAuth, [
     const fs = require('fs');
     const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
     const avatarsDir = path.join(uploadsDir, 'avatars');
-    try { if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true }); } catch {}
-    try { if (!fs.existsSync(avatarsDir)) fs.mkdirSync(avatarsDir, { recursive: true }); } catch {}
+    try { if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true }); } catch { }
+    try { if (!fs.existsSync(avatarsDir)) fs.mkdirSync(avatarsDir, { recursive: true }); } catch { }
     const fileRel = `/uploads/avatars/${req.user.id}.${ext}`;
     const fileAbs = path.join(avatarsDir, `${req.user.id}.${ext}`);
     try {
       fs.writeFileSync(fileAbs, buf);
-    } catch(e) {
+    } catch (e) {
       return res.status(500).json({ error: 'upload_failed', detail: e && e.message });
     }
     const conn = await pool.getConnection();

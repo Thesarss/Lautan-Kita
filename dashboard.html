@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Lautan Kita</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .loader-container {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #EF4444;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        .error h2 {
+            color: #FEE2E2;
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+    <script src="assets/js/api.js"></script>
+</head>
+
+<body>
+    <div class="loader-container">
+        <div class="loader"></div>
+        <h1>Memuat Dashboard...</h1>
+        <p id="statusText">Memeriksa akun Anda</p>
+    </div>
+
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+
+        async function redirectToDashboard() {
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                showError('Anda belum login', 'Silakan login terlebih dahulu untuk mengakses dashboard.', 'login.html');
+                return;
+            }
+
+            try {
+                document.getElementById('statusText').textContent = 'Mengidentifikasi peran Anda...';
+
+                const resp = await API.authFetch('/auth/me');
+
+                if (!resp.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const user = await resp.json();
+                const role = user.role;
+
+                document.getElementById('statusText').textContent = `Mengarahkan ke dashboard ${role}...`;
+
+                // Redirect berdasarkan role
+                setTimeout(() => {
+                    switch (role) {
+                        case 'pembeli':
+                            window.location.href = 'dashboard-pembeli.html';
+                            break;
+                        case 'penjual':
+                            window.location.href = 'dashboard-penjual.html';
+                            break;
+                        case 'kurir':
+                            window.location.href = 'dashboard-kurir.html';
+                            break;
+                        case 'admin':
+                            window.location.href = 'admin.html';
+                            break;
+                        default:
+                            showError('Role Tidak Dikenali', `Role "${role}" tidak memiliki dashboard.`, 'home_final.html');
+                    }
+                }, 500);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Gagal Memuat Dashboard', 'Terjadi kesalahan saat memuat dashboard. Silakan coba lagi.', 'home_final.html');
+            }
+        }
+
+        function showError(title, message, redirectUrl) {
+            document.querySelector('.loader-container').innerHTML = `
+        <div class="error">
+          <h2>${title}</h2>
+          <p>${message}</p>
+          <button class="btn" onclick="window.location.href='${redirectUrl}'">
+            ${redirectUrl === 'login.html' ? 'Login' : 'Kembali ke Beranda'}
+          </button>
+        </div>
+      `;
+        }
+
+        // Auto redirect saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', redirectToDashboard);
+    </script>
+</body>
+
+</html>

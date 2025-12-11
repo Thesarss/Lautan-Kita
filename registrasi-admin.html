@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Admin - Lautan Kita</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 10px;
+        }
+
+        .logo h1 {
+            color: #667eea;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .logo .subtitle {
+            color: #64748B;
+            font-size: 0.9rem;
+        }
+
+        .alert {
+            background: #FEF3C7;
+            border-left: 4px solid #F59E0B;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: #92400E;
+        }
+
+        .alert i {
+            margin-right: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #1E3A8A;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #93C5FD;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .error-message {
+            color: #EF4444;
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #1E3A8A;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #64748B;
+        }
+
+        .info-box {
+            background: #DBEAFE;
+            border-left: 4px solid #0077B6;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #1E40AF;
+        }
+
+        .info-box h4 {
+            margin-bottom: 8px;
+            color: #0077B6;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .info-box li {
+            margin-bottom: 4px;
+        }
+    </style>
+    <script src="assets/js/api.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="img/logo.png" alt="Lautan Kita">
+            <h1>Lautan Kita</h1>
+            <p class="subtitle">Registrasi Administrator</p>
+        </div>
+
+        <div class="alert">
+            <i class="fas fa-shield-alt"></i>
+            <strong>Halaman Khusus Admin:</strong> Hanya untuk membuat akun admin pertama.
+        </div>
+
+        <div class="info-box">
+            <h4><i class="fas fa-info-circle"></i> Informasi Penting:</h4>
+            <ul>
+                <li>Halaman ini hanya bisa digunakan sekali untuk membuat admin pertama</li>
+                <li>Setelah admin pertama dibuat, halaman ini tidak akan berfungsi</li>
+                <li>Anda memerlukan <strong>Secret Key</strong> untuk registrasi</li>
+                <li>Secret Key default: <code
+                        style="background:#FEE2E2;padding:2px 6px;border-radius:4px;color:#991B1B">LAUTAN_KITA_ADMIN_2025</code>
+                </li>
+            </ul>
+        </div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="name"><i class="fas fa-user"></i> Nama Lengkap</label>
+                <input type="text" id="name" name="name" required placeholder="Masukkan nama lengkap">
+                <div class="error-message" id="nameError">Nama harus diisi</div>
+            </div>
+
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                <input type="email" id="email" name="email" required placeholder="admin@lautankita.com">
+                <div class="error-message" id="emailError">Email tidak valid</div>
+            </div>
+
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> Password</label>
+                <div class="password-container">
+                    <input type="password" id="password" name="password" required minlength="8"
+                        placeholder="Minimal 8 karakter">
+                    <i class="fas fa-eye password-toggle" id="togglePassword"></i>
+                </div>
+                <div class="error-message" id="passwordError">Password minimal 8 karakter</div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword"><i class="fas fa-lock"></i> Konfirmasi Password</label>
+                <div class="password-container">
+                    <input type="password" id="confirmPassword" name="confirmPassword" required
+                        placeholder="Ulangi password">
+                    <i class="fas fa-eye password-toggle" id="toggleConfirmPassword"></i>
+                </div>
+                <div class="error-message" id="confirmPasswordError">Password tidak sama</div>
+            </div>
+
+            <div class="form-group">
+                <label for="secretKey"><i class="fas fa-key"></i> Secret Key</label>
+                <input type="password" id="secretKey" name="secretKey" required placeholder="Masukkan secret key">
+                <div class="error-message" id="secretKeyError">Secret key diperlukan</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-user-shield"></i> Buat Akun Admin
+            </button>
+
+            <div class="login-link">
+                Sudah punya akun? <a href="login.html">Masuk disini</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Toggle password visibility
+            const togglePassword = document.querySelector('#togglePassword');
+            const password = document.querySelector('#password');
+            const toggleConfirmPassword = document.querySelector('#toggleConfirmPassword');
+            const confirmPassword = document.querySelector('#confirmPassword');
+
+            togglePassword.addEventListener('click', function () {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                this.classList.toggle('fa-eye-slash');
+            });
+
+            toggleConfirmPassword.addEventListener('click', function () {
+                const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                confirmPassword.setAttribute('type', type);
+                this.classList.toggle('fa-eye-slash');
+            });
+
+            // Form validation
+            const form = document.getElementById('registerForm');
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                let isValid = true;
+
+                // Validate name
+                const name = document.getElementById('name').value.trim();
+                if (name === '') {
+                    document.getElementById('nameError').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('nameError').style.display = 'none';
+                }
+
+                // Validate email
+                const email = document.getElementById('email').value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    document.getElementById('emailError').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('emailError').style.display = 'none';
+                }
+
+                // Validate password
+                const password = document.getElementById('password').value;
+                if (password.length < 8) {
+                    document.getElementById('passwordError').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('passwordError').style.display = 'none';
+                }
+
+                // Validate confirm password
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                if (password !== confirmPassword) {
+                    document.getElementById('confirmPasswordError').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('confirmPasswordError').style.display = 'none';
+                }
+
+                // Validate secret key
+                const secretKey = document.getElementById('secretKey').value.trim();
+                if (secretKey === '') {
+                    document.getElementById('secretKeyError').style.display = 'block';
+                    isValid = false;
+                } else {
+                    document.getElementById('secretKeyError').style.display = 'none';
+                }
+
+                if (isValid) {
+                    try {
+                        const resp = await fetch(API_BASE + '/auth/register-admin', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nama: name,
+                                email,
+                                password,
+                                secret_key: secretKey
+                            })
+                        });
+
+                        const data = await resp.json();
+
+                        if (!resp.ok) {
+                            if (data.error === 'invalid_secret_key') {
+                                API.showModal({
+                                    title: 'Secret Key Salah',
+                                    message: 'Secret key yang Anda masukkan tidak valid. Silakan coba lagi.'
+                                });
+                            } else if (data.error === 'admin_already_exists') {
+                                API.showModal({
+                                    title: 'Admin Sudah Ada',
+                                    message: 'Admin sudah pernah dibuat. Hubungi admin untuk membuat akun admin baru.'
+                                });
+                            } else if (data.error === 'email_exists') {
+                                API.showModal({
+                                    title: 'Email Sudah Terdaftar',
+                                    message: 'Email ini sudah digunakan. Gunakan email lain.'
+                                });
+                            } else {
+                                API.showModal({
+                                    title: 'Registrasi Gagal',
+                                    message: data.message || 'Terjadi kesalahan saat registrasi.'
+                                });
+                            }
+                            return;
+                        }
+
+                        localStorage.setItem('auth_token', data.token);
+                        API.showModal({
+                            title: 'Registrasi Berhasil!',
+                            message: 'Akun admin berhasil dibuat. Anda akan diarahkan ke dashboard admin.',
+                            actions: [{
+                                label: 'Ke Dashboard',
+                                variant: 'primary',
+                                handler: function () {
+                                    API.hideModal();
+                                    window.location.href = 'admin.html';
+                                }
+                            }]
+                        });
+                    } catch (error) {
+                        console.error('Error:', error);
+                        API.showModal({
+                            title: 'Kesalahan Jaringan',
+                            message: 'Terjadi kesalahan jaringan. Pastikan backend sudah running.'
+                        });
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

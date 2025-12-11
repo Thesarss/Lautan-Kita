@@ -7,7 +7,7 @@ const { query, body, param, validationResult } = require('express-validator');
 const router = express.Router();
 
 router.get('/admin/users', requireAuth, requireRole(['admin']), [
-  query('role').optional().isIn(['pembeli','penjual','admin']),
+  query('role').optional().isIn(['pembeli', 'penjual', 'admin']),
   query('q').optional().isString().trim()
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -46,7 +46,7 @@ router.patch('/admin/users/:id/verify', requireAuth, requireRole(['admin']), [
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
   } finally {
     conn.release();
@@ -55,7 +55,7 @@ router.patch('/admin/users/:id/verify', requireAuth, requireRole(['admin']), [
 
 router.patch('/admin/users/:id/role', requireAuth, requireRole(['admin']), [
   param('id').isInt({ min: 1 }),
-  body('role').isIn(['pembeli','penjual','admin'])
+  body('role').isIn(['pembeli', 'penjual', 'admin'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
@@ -70,7 +70,7 @@ router.patch('/admin/users/:id/role', requireAuth, requireRole(['admin']), [
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
   } finally {
     conn.release();
@@ -79,7 +79,7 @@ router.patch('/admin/users/:id/role', requireAuth, requireRole(['admin']), [
 
 router.patch('/admin/products/:id/status', requireAuth, requireRole(['admin']), [
   param('id').isInt({ min: 1 }),
-  body('status').isIn(['aktif','nonaktif'])
+  body('status').isIn(['aktif', 'nonaktif'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
@@ -94,8 +94,102 @@ router.patch('/admin/products/:id/status', requireAuth, requireRole(['admin']), 
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
-    try { await conn.rollback(); } catch {}
+    try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+router.patch('/admin/users/:id', requireAuth, requireRole(['admin']), [
+  param('id').isInt({ min: 1 }),
+  body('nama').optional().isString().trim(),
+  body('email').optional().isEmail().normalizeEmail(),
+  body('role').optional().isIn(['pembeli', 'penjual', 'admin', 'kurir']),
+  body('verified').optional().isBoolean()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const { nama, email, role, verified } = req.body;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [u] = await conn.query('SELECT user_id FROM user WHERE user_id=? FOR UPDATE', [req.params.id]);
+    if (!u.length) { await conn.rollback(); return res.status(404).json({ error: 'not_found' }); }
+
+    // Check email uniqueness if email is being changed
+    if (email) {
+      const [existing] = await conn.query('SELECT user_id FROM user WHERE email=? AND user_id!=?', [email, req.params.id]);
+      if (existing.length) { await conn.rollback(); return res.status(409).json({ error: 'email_exists' }); }
+    }
+
+    await conn.query(
+      'UPDATE user SET nama=COALESCE(?,nama), email=COALESCE(?,email), role=COALESCE(?,role), verified=COALESCE(?,verified) WHERE user_id=?',
+      [nama || null, email || null, role || null, verified !== undefined ? (verified ? 1 : 0) : null, req.params.id]
+    );
+    await conn.query('INSERT INTO audit_log (actor_user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?)', [req.user.id, 'user_update', 'user', req.params.id, JSON.stringify({ nama, email, role, verified })]);
+    await conn.commit();
+    res.json({ ok: true });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+router.get('/admin/transactions', requireAuth, requireRole(['admin']), [
+  query('status').optional().isIn(['pending', 'confirmed', 'failed']),
+  query('from').optional().isISO8601(),
+  query('to').optional().isISO8601()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const { status, from, to } = req.query;
+  const conn = await pool.getConnection();
+  try {
+    let sql = `SELECT pb.pembayaran_id, pb.pesanan_id, pb.jumlah_bayar, pb.metode_pembayaran, 
+               pb.status_pembayaran, pb.tanggal_pembayaran, pb.bukti_transfer,
+               u.nama AS pembeli_nama, u.email AS pembeli_email
+               FROM pembayaran pb
+               JOIN pesanan ps ON ps.pesanan_id = pb.pesanan_id
+               JOIN user u ON u.user_id = ps.user_id`;
+    const params = [];
+    const conds = [];
+    if (status) { conds.push('pb.status_pembayaran=?'); params.push(status); }
+    if (from) { conds.push('pb.tanggal_pembayaran >= ?'); params.push(from); }
+    if (to) { conds.push('pb.tanggal_pembayaran <= ?'); params.push(to); }
+    if (conds.length) sql += ' WHERE ' + conds.join(' AND ');
+    sql += ' ORDER BY pb.tanggal_pembayaran DESC';
+    const [rows] = await conn.query(sql, params);
+    res.json(rows);
+  } finally {
+    conn.release();
+  }
+});
+
+router.get('/admin/reviews', requireAuth, requireRole(['admin']), [
+  query('status').optional().isIn(['aktif', 'disembunyikan']),
+  query('rating').optional().isInt({ min: 1, max: 5 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const { status, rating } = req.query;
+  const conn = await pool.getConnection();
+  try {
+    let sql = `SELECT u.ulasan_id, u.produk_id, p.nama_produk, u.pembeli_id, 
+               usr.nama AS pembeli_nama, u.rating, u.komentar, u.status, u.dibuat_pada AS tanggal_ulasan
+               FROM ulasan u
+               JOIN produk p ON p.produk_id = u.produk_id
+               JOIN user usr ON usr.user_id = u.pembeli_id`;
+    const params = [];
+    const conds = [];
+    if (status) { conds.push('u.status=?'); params.push(status); }
+    if (rating) { conds.push('u.rating=?'); params.push(rating); }
+    if (conds.length) sql += ' WHERE ' + conds.join(' AND ');
+    sql += ' ORDER BY u.dibuat_pada DESC';
+    const [rows] = await conn.query(sql, params);
+    res.json(rows);
   } finally {
     conn.release();
   }
@@ -103,7 +197,7 @@ router.patch('/admin/products/:id/status', requireAuth, requireRole(['admin']), 
 
 router.patch('/admin/reviews/:id/status', requireAuth, requireRole(['admin']), [
   param('id').isInt({ min: 1 }),
-  body('status').isIn(['aktif','disembunyikan'])
+  body('status').isIn(['aktif', 'disembunyikan'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
@@ -142,7 +236,7 @@ router.get('/admin/reports/sales', requireAuth, requireRole(['admin']), [
 });
 
 router.get('/admin/reports/payouts', requireAuth, requireRole(['admin']), [
-  query('status').optional().isIn(['queued','processing','settled','failed'])
+  query('status').optional().isIn(['queued', 'processing', 'settled', 'failed'])
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
@@ -161,7 +255,7 @@ router.get('/admin/reports/payouts', requireAuth, requireRole(['admin']), [
 });
 
 router.get('/admin/reviews', requireAuth, requireRole(['admin']), [
-  query('status').optional().isIn(['aktif','disembunyikan']),
+  query('status').optional().isIn(['aktif', 'disembunyikan']),
   query('q').optional().isString().trim()
 ], async (req, res) => {
   const errors = validationResult(req);
