@@ -248,6 +248,41 @@
       top: -20px;
     }
 
+    .seller {
+      font-size: 0.85rem;
+      color: #a8b3d1;
+      position: relative;
+      top: -20px;
+      margin-bottom: 5px;
+    }
+
+    .seller-name {
+      color: #00ff88;
+      font-weight: 700;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      background: linear-gradient(45deg, #00ff88, #00d4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: brightness(1.3);
+    }
+    
+    /* Fallback untuk browser yang tidak support gradient text */
+    @supports not (-webkit-background-clip: text) {
+      .seller-name {
+        color: #00ff88 !important;
+        background: none !important;
+        -webkit-text-fill-color: initial !important;
+      }
+    }
+
+    .stok {
+      font-size: 0.85rem;
+      color: #a8b3d1;
+      position: relative;
+      top: -20px;
+    }
+
     .stok {
       font-size: 0.85rem;
       color: #d1ddff;
@@ -625,6 +660,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 40.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Budi Fisherman</span></p>
           <p class="stok">Stok: 15 kg</p>
         </div>
         <div class="actions">
@@ -652,6 +688,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 25.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Budi Fisherman</span></p>
           <p class="stok">Stok: 9 kg</p>
         </div>
         <div class="actions">
@@ -679,6 +716,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 28.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Susi Seafood</span></p>
           <p class="stok">Stok: 7 kg</p>
         </div>
         <div class="actions">
@@ -706,6 +744,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 40.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Joko Nelayan</span></p>
           <p class="stok">Stok: 15 kg</p>
         </div>
         <div class="actions">
@@ -733,6 +772,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 37.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Budi Fisherman</span></p>
           <p class="stok">Stok: 12 kg</p>
         </div>
         <div class="actions">
@@ -760,6 +800,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 64.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Joko Nelayan</span></p>
           <p class="stok">Stok: 8 kg</p>
         </div>
         <div class="actions">
@@ -794,6 +835,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 40.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Budi Fisherman</span></p>
           <p class="stok">Stok: 15 kg</p>
         </div>
         <div class="actions">
@@ -821,6 +863,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 72.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Susi Seafood</span></p>
           <p class="stok">Stok: 11 kg</p>
         </div>
         <div class="actions">
@@ -848,6 +891,7 @@
             <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
           </div>
           <p class="price">Rp. 28.000/kg</p>
+          <p class="seller">Penjual: <span class="seller-name">Susi Seafood</span></p>
           <p class="stok">Stok: 7 kg</p>
         </div>
         <div class="actions">
@@ -1039,107 +1083,12 @@
   </div>
 
   <script>
-    // DATA PRODUK LENGKAP DENGAN KATEGORI
+    // LOAD API SCRIPT
     const apiScript = document.createElement('script'); apiScript.src = 'assets/js/api.js'; document.head.appendChild(apiScript);
     const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
-    const products = {
-      'ikan-belanak': {
-        id: 'ikan-belanak',
-        name: 'Ikan Belanak',
-        price: 40000,
-        image: "img/ikan-belanak.png",
-        category: 'ikan',
-        description: 'Ikan belanak segar langsung dari laut, ditangkap pagi ini dengan metode ramah lingkungan.',
-        seller: 'Budi Fisherman',
-        rating: 5,
-        stock: 15,
-        benefits: ['Kaya omega-3', 'Protein tinggi', 'Segar langsung dari laut'],
-        reviews: [
-          { user: 'Andi', rating: 5, comment: 'Sangat segar!' },
-          { user: 'Siti', rating: 4, comment: 'Pengiriman cepat' }
-        ]
-      },
-      'ikan-puri': {
-        id: 'ikan-puri',
-        name: 'Ikan Puri',
-        price: 25000,
-        image: "img/ikan-puri.png",
-        category: 'ikan',
-        description: 'Ikan puri segar dengan daging yang lembut dan gurih.',
-        seller: 'Budi Fisherman',
-        rating: 4,
-        stock: 9,
-        benefits: ['Rendah lemak', 'Kaya protein', 'Cocok untuk berbagai masakan']
-      },
-      'udang': {
-        id: 'udang',
-        name: 'Udang',
-        price: 28000,
-        image: "img/udang.png",
-        category: 'udang',
-        description: 'Udang segar ukuran besar dengan cita rasa manis alami.',
-        seller: 'Susi Seafood',
-        rating: 5,
-        stock: 7,
-        benefits: ['Segar langsung dari tambak', 'Ukuran besar', 'Bersih']
-      },
-      'kepiting': {
-        id: 'kepiting',
-        name: 'Kepiting',
-        price: 40000,
-        image: "img/kepiting.png",
-        category: 'kepiting',
-        description: 'Kepiting segar dengan daging yang padat dan lezat.',
-        seller: 'Joko Nelayan',
-        rating: 4,
-        stock: 15,
-        benefits: ['Daging padat', 'Segar', 'Kaya nutrisi']
-      },
-      'ikan-tongkol': {
-        id: 'ikan-tongkol',
-        name: 'Ikan Tongkol',
-        price: 37000,
-        image: "img/ikan-tongkol.png",
-        category: 'ikan',
-        description: 'Ikan tongkol segar dengan tekstur daging yang kenyal.',
-        seller: 'Budi Fisherman',
-        rating: 4,
-        stock: 12,
-        benefits: ['Kaya protein', 'Tekstur kenyal', 'Cocok untuk berbagai masakan']
-      },
-      'sotong': {
-        id: 'sotong',
-        name: 'Sotong',
-        price: 64000,
-        image: "img/sotong.png",
-        category: 'sotong',
-        description: 'Sotong segar dengan cita rasa khas yang lezat.',
-        seller: 'Joko Nelayan',
-        rating: 5,
-        stock: 8,
-        benefits: ['Segar', 'Tekstur lembut', 'Kaya protein']
-      },
-      'ikan-kakap': {
-        id: 'ikan-kakap',
-        name: 'Ikan Kakap',
-        price: 72000,
-        image: "img/ikan-kakap.png",
-        category: 'ikan',
-        description: 'Ikan kakap merah segar dengan daging tebal dan lembut.',
-        seller: 'Susi Seafood',
-        rating: 5,
-        stock: 11,
-        benefits: ['Daging tebal', 'Kualitas premium', 'Segar']
-      }
-    };
 
     // INISIALISASI DATA
     async function initApp() {
-      // Inisialisasi produk jika belum ada
-      if (!localStorage.getItem('products')) {
-        localStorage.setItem('products', JSON.stringify(products));
-      }
-
       // Inisialisasi keranjang jika belum ada
       if (!localStorage.getItem('cart')) {
         localStorage.setItem('cart', JSON.stringify([]));
@@ -1158,8 +1107,11 @@
     function renderFilterCategories() {
       const categoriesContainer = document.getElementById('filterCategories');
       if (!categoriesContainer) return;
-      const allProducts = JSON.parse(localStorage.getItem('products')) || {};
-      const categories = [...new Set(Object.values(allProducts).map(p => p.category).filter(Boolean))];
+      
+      // Get categories from backend products displayed on page
+      const productCards = document.querySelectorAll('.card[data-category]');
+      const categories = [...new Set(Array.from(productCards).map(card => card.dataset.category).filter(Boolean))];
+      
       categoriesContainer.innerHTML = '';
       categories.forEach(category => {
         const div = document.createElement('div');
@@ -1226,9 +1178,9 @@
             <h3>${p.nama_produk || p.name || 'Produk'}</h3>
             <div class="rating"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
             <p class="price">Rp. ${(p.harga || 0).toLocaleString('id-ID')}/kg</p>
+            <p class="seller">Penjual: <span class="seller-name">${p.penjual_nama || 'Nelayan Lokal'}</span></p>
             <p class="stok">Stok: ${p.stok ?? 0} kg</p>
-            <p class="seller" style="color:#4b6a84">Penjual: ${p.penjual_nama || '-'}</p>
-            <p class="tgl" style="color:#6b7280">Upload: ${(p.tanggal_upload || '').toString().slice(0, 10)}</p>
+            <p class="tgl" style="color:#00ff88; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.5); filter: brightness(1.2);">📅 Upload: ${(p.tanggal_upload || '').toString().slice(0, 10)}</p>
           </div>
           ${actions}
           ${buy}
@@ -1407,15 +1359,12 @@
           return;
         }
       }
-      const allProducts = JSON.parse(localStorage.getItem('products')) || {};
-      const product = allProducts[productId];
-      if (!product) return;
-      let cart = JSON.parse(localStorage.getItem('cart')) || [];
-      let found = cart.find(item => item.id === productId || item.name === product.name);
-      if (found) { found.quantity += 1; }
-      else { cart.push({ id: productId, name: product.name, price: product.price, image: product.image, quantity: 1, seller: product.seller || seller || "" }); }
-      localStorage.setItem('cart', JSON.stringify(cart));
-      window.location.href = 'checkout.html';
+      // If no token, redirect to login
+      API.showModal({ 
+        title: 'Login Required', 
+        message: 'Silakan login terlebih dahulu untuk melakukan pembelian.',
+        actions: [{ label: 'Login', variant: 'primary', handler: () => { window.location.href = 'login.html'; } }]
+      });
     }
     // ====== END BELI SEKARANG ======
 
@@ -1540,53 +1489,28 @@
     }
 
     function renderRekomendasiMenu() {
-      const container = document.querySelector("#rekomendasi .cards");
-      if (!container) return;
-      const allProducts = JSON.parse(localStorage.getItem('products')) || {};
-      container.innerHTML = '';
-      Object.values(allProducts).forEach(product => {
-        const card = document.createElement('div');
-        card.className = 'card recipe-card';
-        card.dataset.category = product.category;
-        card.innerHTML = `
-        <div class="image-container">
-          <img src="${product.image}" alt="${product.name}" class="product-image">
-          <span class="badge">${product.stock > 10 ? 'Baru ditangkap' : 'Disimpan dalam es'}</span>
-        </div>
-        <div class="product-info">
-          <h3>${product.name}</h3>
-          <p class="price">Rp. ${product.price.toLocaleString('id-ID')}/kg</p>
-        </div>
-        <div class="actions">
-          <div class="action-row">
-            <button class="detail-btn" onclick="buyNow('${product.id}', ${product.price}, '${product.image}', '${product.seller}')">
-              <i class="fas fa-shopping-bag"></i> Beli Sekarang
-            </button>
-            <button class="cart-btn" onclick="addToCart('${product.name}', ${product.price}, '${product.image}')">
-              <i class="fas fa-shopping-cart"></i>
-            </button>
-          </div>
-          <button class="recipe-btn" onclick="window.open('https://cookpad.com/id/cari/${encodeURIComponent(product.name)}','_blank')">
-            <i class="fas fa-book-open"></i> Lihat Resep
-          </button>
-        </div>
-      `;
-        container.appendChild(card);
-      });
+      // Rekomendasi menu will be populated by backend data through fetchBackendProducts
+      // This function is kept for compatibility but no longer uses dummy data
     }
 
     // Perbaiki fungsi addToCart agar update localStorage dan counter dengan benar
     function addToCart(name, price, image) {
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
-      const existing = cart.find(item => item.name === name);
-      if (existing) {
-        existing.quantity += 1;
-      } else {
-        cart.push({ name, price, image, quantity: 1 });
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        API.showModal({ 
+          title: 'Login Required', 
+          message: 'Silakan login terlebih dahulu untuk menambah ke keranjang.',
+          actions: [{ label: 'Login', variant: 'primary', handler: () => { window.location.href = 'login.html'; } }]
+        });
+        return;
       }
-      localStorage.setItem('cart', JSON.stringify(cart));
-      updateCartCounter();
-      API.showModal({ title: 'Keranjang', message: name + ' ditambahkan ke keranjang', actions: [{ label: 'Lihat Keranjang', variant: 'primary', handler: function () { API.hideModal(); window.location.href = 'keranjang.html'; } }] });
+      
+      // For logged in users, use backend cart
+      API.showModal({ 
+        title: 'Info', 
+        message: 'Gunakan tombol keranjang di produk untuk menambah ke keranjang.',
+        actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+      });
     }
 
     async function addToCartBackend(produk_id, jumlah) {

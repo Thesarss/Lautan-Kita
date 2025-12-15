@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Dashboard Test</title>
+    <script src="assets/js/api.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        .orders { margin-top: 20px; }
+        .order-item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Minimal Dashboard Test</h1>
+    <div id="logs"></div>
+    <div id="stats">
+        <p>Menunggu: <span id="statMenunggu">0</span></p>
+        <p>Diproses: <span id="statDiproses">0</span></p>
+        <p>Dikirim: <span id="statDikirim">0</span></p>
+        <p>Selesai: <span id="statSelesai">0</span></p>
+    </div>
+    <div id="ordersContainer" class="orders">Loading...</div>
+    
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+        let allOrders = [];
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            document.getElementById('logs').appendChild(div);
+            console.log(message);
+        }
+        
+        async function init() {
+            log('🚀 Starting minimal dashboard test');
+            
+            // Set test token (from our API test)
+            localStorage.setItem('auth_token', 'test-token');
+            
+            // Test login first
+            try {
+                const loginResp = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'pembeli@test.com', 
+                        password: 'password123' 
+                    })
+                });
+                
+                if (!loginResp.ok) {
+                    log(`❌ Login failed: ${loginResp.status}`, 'error');
+                    return;
+                }
+                
+                const loginData = await loginResp.json();
+                localStorage.setItem('auth_token', loginData.token);
+                log('✅ Login successful', 'success');
+                
+                // Load orders
+                await loadOrders();
+                
+            } catch (e) {
+                log(`❌ Init error: ${e.message}`, 'error');
+                console.error('Full error:', e);
+            }
+        }
+        
+        async function loadOrders() {
+            log('🔄 Loading orders...');
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) {
+                    log('❌ No token found', 'error');
+                    return;
+                }
+
+                log('✅ Token found, making API call...');
+                const authHeaders = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                };
+                
+                const resp = await fetch(API_BASE + '/orders/my-orders', { headers: authHeaders });
+                log(`📡 API response status: ${resp.status}`);
+                
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    log(`❌ API error: ${resp.status} - ${errorText}`, 'error');
+                    return;
+                }
+                
+                allOrders = await resp.json();
+                log(`✅ Orders loaded: ${allOrders.length} orders`, 'success');
+                
+                if (allOrders.length === 0) {
+                    log('⚠️ No orders found');
+                    document.getElementById('ordersContainer').innerHTML = '<p>No orders found</p>';
+                } else {
+                    log('📊 Updating stats and rendering orders...');
+                    updateStats();
+                    renderOrders();
+                }
+                
+            } catch (e) {
+                log(`❌ Error loading orders: ${e.message}`, 'error');
+                console.error('Full error:', e);
+            }
+        }
+        
+        function updateStats() {
+            log('📊 Updating stats...');
+            const stats = {
+                pending: 0,
+                menunggu: 0,
+                dikemas: 0,
+                diproses: 0,
+                dikirim: 0,
+                selesai: 0,
+                dibatalkan: 0,
+                empty: 0
+            };
+
+            allOrders.forEach(order => {
+                const status = order.status || order.status_pesanan || '';
+                log(`   Order ${order.pesanan_id}: status="${status}"`);
+                if (status === '') {
+                    stats.empty++;
+                    stats.menunggu++;
+                } else if (stats.hasOwnProperty(status)) {
+                    stats[status]++;
+                }
+            });
+
+            // Update display
+            document.getElementById('statMenunggu').textContent = stats.pending + stats.menunggu;
+            document.getElementById('statDiproses').textContent = stats.dikemas + stats.diproses;
+            document.getElementById('statDikirim').textContent = stats.dikirim;
+            document.getElementById('statSelesai').textContent = stats.selesai;
+            
+            log(`✅ Stats updated: Menunggu=${stats.pending + stats.menunggu}, Diproses=${stats.dikemas + stats.diproses}, Dikirim=${stats.dikirim}, Selesai=${stats.selesai}`, 'success');
+        }
+        
+        function renderOrders() {
+            log('🎨 Rendering orders...');
+            const container = document.getElementById('ordersContainer');
+            
+            if (allOrders.length === 0) {
+                container.innerHTML = '<p>No orders to display</p>';
+                return;
+            }
+
+            container.innerHTML = allOrders.map(order => {
+                const status = order.status || order.status_pesanan || '';
+                const normalizedStatus = status === '' ? 'menunggu' : status;
+                const itemsText = order.items ? order.items.map(item => `${item.nama_produk} (${item.jumlah}x)`).join(', ') : 'No items';
+                
+                return `
+                    <div class="order-item">
+                        <strong>Order #${order.pesanan_id}</strong> - Status: ${normalizedStatus}<br>
+                        <small>Date: ${new Date(order.tanggal_pesanan || order.created_at).toLocaleDateString()}</small><br>
+                        <small>Items: ${itemsText}</small><br>
+                        <strong>Total: Rp ${Number(order.total_harga).toLocaleString('id-ID')}</strong>
+                    </div>
+                `;
+            }).join('');
+            
+            log(`✅ Successfully rendered ${allOrders.length} orders`, 'success');
+        }
+        
+        // Start when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

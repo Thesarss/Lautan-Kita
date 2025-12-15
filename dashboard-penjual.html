@@ -766,6 +766,9 @@
             <button class="action-btn delete" onclick="deleteProduct(${product.produk_id})">
               <i class="fas fa-trash"></i> Hapus
             </button>
+            <button class="action-btn" onclick="checkProductOrders(${product.produk_id})" style="background: #6B7280; color: white; font-size: 12px; padding: 6px 8px;">
+              <i class="fas fa-info-circle"></i> Info
+            </button>
           </div>
         </div>
       `).join('');
@@ -810,8 +813,11 @@
             <button class="action-btn edit" onclick="editProduct(${product.produk_id})" style="margin-right: 4px;">
               <i class="fas fa-edit"></i> Edit
             </button>
-            <button class="action-btn delete" onclick="deleteProduct(${product.produk_id})">
+            <button class="action-btn delete" onclick="deleteProduct(${product.produk_id})" style="margin-right: 4px;">
               <i class="fas fa-trash"></i> Hapus
+            </button>
+            <button class="action-btn" onclick="checkProductOrders(${product.produk_id})" style="background: #6B7280; color: white; font-size: 12px; padding: 6px 8px;">
+              <i class="fas fa-info-circle"></i>
             </button>
           </td>
         </tr>
@@ -1069,19 +1075,27 @@
                 harga: price,
                 satuan: unit,
                 stok: stock,
-                status: status,
-                image: imageBase64
+                status: status
             };
+            
+            // Only include image if one was selected
+            if (imageBase64) {
+                data.image = imageBase64;
+            }
 
             try {
+                console.log('Submitting product data:', data);
+                
                 let resp;
                 if (editingProductId) {
+                    console.log('Updating product ID:', editingProductId);
                     resp = await API.authFetch(`/penjual/produk/${editingProductId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(data)
                     });
                 } else {
+                    console.log('Creating new product');
                     resp = await API.authFetch('/penjual/produk', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1097,7 +1111,23 @@
                         actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); loadProducts(); } }]
                     });
                 } else {
-                    API.showModal({ title: 'Error', message: 'Gagal menyimpan produk.' });
+                    const error = await resp.json();
+                    console.error('Product save error:', error);
+                    
+                    let errorMessage = 'Gagal menyimpan produk.';
+                    if (error.details && error.details.length > 0) {
+                        errorMessage += '\n\nDetail error:\n';
+                        error.details.forEach(detail => {
+                            errorMessage += `- ${detail.msg} (${detail.param})\n`;
+                        });
+                    } else if (error.message) {
+                        errorMessage += '\n\n' + error.message;
+                    }
+                    
+                    API.showModal({ 
+                        title: 'Error', 
+                        message: errorMessage
+                    });
                 }
             } catch (e) {
                 API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
@@ -1114,21 +1144,110 @@
         }
 
         async function deleteProduct(productId) {
+            const product = myProducts.find(p => p.produk_id === productId);
+            if (!product) return;
+
             API.showModal({
                 title: 'Hapus Produk',
-                message: 'Apakah Anda yakin ingin menghapus produk ini?',
+                message: `Apakah Anda yakin ingin menghapus produk "${product.nama_produk}"? Tindakan ini tidak dapat dibatalkan.`,
                 actions: [
                     { label: 'Batal', variant: 'secondary', handler: API.hideModal },
                     {
                         label: 'Ya, Hapus',
                         variant: 'primary',
-                        handler: () => {
+                        handler: async () => {
                             API.hideModal();
-                            API.showModal({ title: 'Info', message: 'Fitur hapus produk akan segera tersedia.' });
+                            try {
+                                const resp = await API.authFetch(`/penjual/produk/${productId}`, {
+                                    method: 'DELETE'
+                                });
+
+                                if (resp.ok) {
+                                    API.showModal({
+                                        title: 'Berhasil',
+                                        message: 'Produk berhasil dihapus!',
+                                        actions: [{ 
+                                            label: 'OK', 
+                                            variant: 'primary', 
+                                            handler: () => { 
+                                                API.hideModal(); 
+                                                loadProducts(); 
+                                            } 
+                                        }]
+                                    });
+                                } else {
+                                    const error = await resp.json();
+                                    let errorMessage = error.message || 'Gagal menghapus produk.';
+                                    
+                                    if (error.error === 'product_in_pending_orders') {
+                                        errorMessage += '\n\nTip: Anda bisa mengubah status produk menjadi "Nonaktif" untuk menyembunyikannya dari pembeli.';
+                                    }
+                                    
+                                    API.showModal({ 
+                                        title: 'Tidak Dapat Menghapus Produk', 
+                                        message: errorMessage
+                                    });
+                                }
+                            } catch (e) {
+                                API.showModal({ 
+                                    title: 'Error', 
+                                    message: 'Terjadi kesalahan jaringan.' 
+                                });
+                            }
                         }
                     }
                 ]
             });
+        }
+
+        async function checkProductOrders(productId) {
+            try {
+                const resp = await API.authFetch(`/penjual/produk/${productId}/orders`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const statusMap = {
+                        'pending': 'Menunggu Pembayaran',
+                        'menunggu': 'Menunggu Konfirmasi',
+                        'diproses': 'Sedang Diproses',
+                        'dikemas': 'Sedang Dikemas',
+                        'dikirim': 'Dalam Pengiriman',
+                        'selesai': 'Selesai',
+                        'dibatalkan': 'Dibatalkan'
+                    };
+                    
+                    let message = `Informasi Pesanan Produk:\n\n`;
+                    message += `Total pesanan: ${data.total_orders}\n`;
+                    message += `Pesanan aktif: ${data.pending_orders}\n\n`;
+                    
+                    if (data.orders.length > 0) {
+                        message += `Riwayat pesanan:\n`;
+                        data.orders.slice(0, 5).forEach(order => {
+                            const status = statusMap[order.status_pesanan] || order.status_pesanan;
+                            const date = new Date(order.created_at).toLocaleDateString('id-ID');
+                            message += `• Pesanan #${order.pesanan_id} - ${status} (${date})\n`;
+                        });
+                        
+                        if (data.orders.length > 5) {
+                            message += `... dan ${data.orders.length - 5} pesanan lainnya\n`;
+                        }
+                    }
+                    
+                    if (data.pending_orders > 0) {
+                        message += `\n⚠️ Produk tidak dapat dihapus karena masih ada pesanan aktif.`;
+                    } else {
+                        message += `\n✅ Produk dapat dihapus (tidak ada pesanan aktif).`;
+                    }
+                    
+                    API.showModal({
+                        title: 'Info Pesanan Produk',
+                        message: message
+                    });
+                } else {
+                    API.showModal({ title: 'Error', message: 'Gagal memuat info pesanan.' });
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
+            }
         }
 
         document.addEventListener('DOMContentLoaded', init);

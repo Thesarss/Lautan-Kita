@@ -462,53 +462,25 @@
         async function loadDeliveries() {
             try {
                 // Untuk saat ini, kita ambil dari endpoint shipments
-                // Backend perlu endpoint khusus untuk kurir: GET /kurir/shipments
-                const resp = await API.authFetch('/shipments');
-                if (!resp.ok) {
-                    // Fallback: gunakan data dummy untuk demo
-                    allDeliveries = generateDummyDeliveries();
-                } else {
+                const resp = await API.authFetch('/kurir/deliveries');
+                if (resp.ok) {
                     allDeliveries = await resp.json();
+                } else {
+                    allDeliveries = [];
+                    console.error('Failed to load deliveries');
                 }
 
                 updateStats();
                 renderDeliveries();
             } catch (e) {
-                // Gunakan data dummy untuk demo
-                allDeliveries = generateDummyDeliveries();
+                console.error('Error loading deliveries:', e);
+                allDeliveries = [];
                 updateStats();
                 renderDeliveries();
             }
         }
 
-        function generateDummyDeliveries() {
-            return [
-                {
-                    pengiriman_id: 1,
-                    pesanan_id: 101,
-                    alamat_kirim: 'Jl. Merdeka No. 123, Tanjung Pinang, Kepulauan Riau',
-                    no_resi: null,
-                    status_kirim: 'diproses',
-                    created_at: new Date().toISOString()
-                },
-                {
-                    pengiriman_id: 2,
-                    pesanan_id: 102,
-                    alamat_kirim: 'Jl. Sudirman No. 45, Batam, Kepulauan Riau',
-                    no_resi: 'JNE123456789',
-                    status_kirim: 'dikirim',
-                    created_at: new Date(Date.now() - 3600000).toISOString()
-                },
-                {
-                    pengiriman_id: 3,
-                    pesanan_id: 103,
-                    alamat_kirim: 'Jl. Ahmad Yani No. 78, Bintan, Kepulauan Riau',
-                    no_resi: 'JNE987654321',
-                    status_kirim: 'diterima',
-                    created_at: new Date(Date.now() - 7200000).toISOString()
-                }
-            ];
-        }
+
 
         function updateStats() {
             const stats = {

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Login Test - Lautan Kita</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 600px; 
+            margin: 0 auto; 
+        }
+        .status { 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .btn { 
+            padding: 10px 20px; 
+            margin: 10px 5px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Auto Login Test - Lautan Kita</h1>
+    <p>Halaman ini akan otomatis login dan test dashboard pembeli.</p>
+
+    <div id="status" class="status info">Memulai test...</div>
+
+    <div>
+        <button class="btn btn-primary" onclick="runTest()">Jalankan Test</button>
+        <button class="btn btn-success" onclick="openDashboard()">Buka Dashboard</button>
+        <button class="btn btn-danger" onclick="clearAuth()">Clear Auth</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:4000';
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function testBackend() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus(`✅ Backend OK: ${data.message}`, 'success');
+                    return true;
+                } else {
+                    updateStatus(`❌ Backend Error: ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                updateStatus(`❌ Backend tidak dapat diakses: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function doLogin() {
+            try {
+                updateStatus('🔐 Melakukan login...', 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'pembeli@test.com',
+                        password: 'password123'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('auth_token', data.token);
+                    updateStatus(`✅ Login berhasil! User: ${data.user.nama}`, 'success');
+                    return data.user;
+                } else {
+                    const error = await response.text();
+                    updateStatus(`❌ Login gagal: ${error}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                updateStatus(`❌ Login error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function testOrders() {
+            try {
+                updateStatus('📦 Testing orders API...', 'info');
+                
+                const token = localStorage.getItem('auth_token');
+                const response = await fetch(`${API_BASE}/orders/my-orders`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const orders = await response.json();
+                    updateStatus(`✅ Orders API berhasil! Ditemukan ${orders.length} pesanan`, 'success');
+                    return orders;
+                } else {
+                    const error = await response.text();
+                    updateStatus(`❌ Orders API gagal: ${error}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                updateStatus(`❌ Orders API error: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function runTest() {
+            updateStatus('🚀 Memulai test lengkap...', 'info');
+
+            // Step 1: Test backend
+            const backendOK = await testBackend();
+            if (!backendOK) return;
+
+            // Step 2: Login
+            const user = await doLogin();
+            if (!user) return;
+
+            // Step 3: Test orders
+            const orders = await testOrders();
+            if (!orders) return;
+
+            // Success
+            updateStatus(`🎉 SEMUA TEST BERHASIL! Ditemukan ${orders.length} pesanan untuk ${user.nama}. Dashboard siap digunakan!`, 'success');
+        }
+
+        function openDashboard() {
+            window.open('dashboard-pembeli-fixed.html', '_blank');
+        }
+
+        function clearAuth() {
+            localStorage.removeItem('auth_token');
+            updateStatus('🗑️ Auth token dihapus. Silakan login ulang.', 'info');
+        }
+
+        // Auto run test when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runTest, 1000);
+        });
+    </script>
+</body>
+</html>

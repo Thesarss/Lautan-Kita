@@ -180,11 +180,17 @@
             font-weight: 600;
         }
 
+        .status-pending {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
         .status-menunggu {
             background: #FEF3C7;
             color: #92400E;
         }
 
+        .status-dikemas,
         .status-diproses {
             background: #DBEAFE;
             color: #1E40AF;
@@ -247,6 +253,19 @@
             background: #EF4444;
             color: white;
             margin-left: 8px;
+        }
+
+        .action-btn.confirm {
+            background: #10B981;
+            color: white;
+            margin-left: 8px;
+            transition: all 0.3s;
+        }
+
+        .action-btn.confirm:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
         }
     </style>
     <script src="assets/js/api.js"></script>
@@ -351,18 +370,23 @@
 
         async function loadOrders() {
             try {
-                const resp = await API.authFetch('/orders');
+                const resp = await API.authFetch('/orders/my-orders');
                 if (!resp.ok) {
                     throw new Error('Failed to load orders');
                 }
                 allOrders = await resp.json();
+                console.log('Orders loaded:', allOrders.length, allOrders);
                 updateStats();
                 renderOrders();
             } catch (e) {
+                console.error('Error loading orders:', e);
                 document.getElementById('ordersContainer').innerHTML = `
           <div class="empty-state">
             <i class="fas fa-exclamation-circle"></i>
             <p>Gagal memuat pesanan. Silakan coba lagi.</p>
+            <button onclick="loadOrders()" style="margin-top: 10px; padding: 8px 16px; background: #0077B6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+              Coba Lagi
+            </button>
           </div>
         `;
             }
@@ -370,22 +394,39 @@
 
         function updateStats() {
             const stats = {
+                pending: 0,
                 menunggu: 0,
+                dikemas: 0,
                 diproses: 0,
                 dikirim: 0,
-                selesai: 0
+                selesai: 0,
+                dibatalkan: 0,
+                empty: 0
             };
 
             allOrders.forEach(order => {
-                if (stats.hasOwnProperty(order.status_pesanan)) {
-                    stats[order.status_pesanan]++;
+                const status = order.status || order.status_pesanan || '';
+                console.log(`Order ${order.pesanan_id}: status="${status}"`);
+                if (status === '') {
+                    stats.empty++;
+                    stats.menunggu++; // Treat empty as menunggu
+                } else if (stats.hasOwnProperty(status)) {
+                    stats[status]++;
                 }
             });
 
-            document.getElementById('statMenunggu').textContent = stats.menunggu;
-            document.getElementById('statDiproses').textContent = stats.diproses;
+            // Map status to display
+            document.getElementById('statMenunggu').textContent = stats.pending + stats.menunggu;
+            document.getElementById('statDiproses').textContent = stats.dikemas + stats.diproses;
             document.getElementById('statDikirim').textContent = stats.dikirim;
             document.getElementById('statSelesai').textContent = stats.selesai;
+            
+            console.log('Stats updated:', {
+                menunggu: stats.pending + stats.menunggu,
+                diproses: stats.dikemas + stats.diproses,
+                dikirim: stats.dikirim,
+                selesai: stats.selesai
+            });
         }
 
         function showTab(filter) {
@@ -400,7 +441,19 @@
             let orders = allOrders;
 
             if (currentFilter !== 'all') {
-                orders = allOrders.filter(o => o.status_pesanan === currentFilter);
+                // Map filter to actual status values
+                const statusMap = {
+                    'menunggu': ['pending', 'menunggu', ''],  // Include empty status as menunggu
+                    'diproses': ['dikemas', 'diproses'],
+                    'dikirim': ['dikirim'],
+                    'selesai': ['selesai']
+                };
+                
+                const targetStatuses = statusMap[currentFilter] || [currentFilter];
+                orders = allOrders.filter(o => {
+                    const status = o.status || o.status_pesanan || '';
+                    return targetStatuses.includes(status);
+                });
             }
 
             if (orders.length === 0) {
@@ -413,41 +466,59 @@
                 return;
             }
 
-            container.innerHTML = orders.map(order => `
+            container.innerHTML = orders.map(order => {
+                const status = order.status || order.status_pesanan || '';
+                const normalizedStatus = status === '' ? 'menunggu' : status;  // Normalize empty status
+                const itemsText = order.items ? order.items.map(item => `${item.nama_produk} (${item.jumlah}x)`).join(', ') : '';
+                
+                return `
         <div class="order-item">
           <div class="order-header">
             <div>
               <span class="order-id">Pesanan #${order.pesanan_id}</span>
-              <span class="order-status status-${order.status_pesanan}">${formatStatus(order.status_pesanan)}</span>
+              <span class="order-status status-${normalizedStatus}">${formatStatus(status)}</span>
             </div>
             <div>
               <button class="action-btn view" onclick="viewOrderDetail(${order.pesanan_id})">
                 <i class="fas fa-eye"></i> Lihat Detail
               </button>
-              ${order.status_pesanan === 'menunggu' ? `
+              ${(normalizedStatus === 'pending' || normalizedStatus === 'menunggu') ? `
                 <button class="action-btn cancel" onclick="cancelOrder(${order.pesanan_id})">
                   <i class="fas fa-times"></i> Batalkan
+                </button>
+              ` : ''}
+              ${normalizedStatus === 'menunggu' ? `
+                <button class="action-btn confirm" onclick="checkPaymentStatus(${order.pesanan_id})">
+                  <i class="fas fa-shield-alt"></i> Konfirmasi Bayar
                 </button>
               ` : ''}
             </div>
           </div>
           <div class="order-details">
-            <div><i class="fas fa-calendar"></i> ${formatDate(order.created_at)}</div>
+            <div><i class="fas fa-calendar"></i> ${formatDate(order.tanggal_pesanan || order.created_at)}</div>
+            ${itemsText ? `<div><i class="fas fa-box"></i> ${itemsText}</div>` : ''}
+            ${order.kurir_nama ? `<div><i class="fas fa-user"></i> Kurir: ${order.kurir_nama}</div>` : ''}
           </div>
           <div class="order-total">Total: Rp ${Number(order.total_harga).toLocaleString('id-ID')}</div>
         </div>
-      `).join('');
+      `;
+            }).join('');
+            
+            console.log('Rendered', orders.length, 'orders');
         }
 
         function formatStatus(status) {
             const statusMap = {
+                'pending': 'Pembayaran Dikonfirmasi',
                 'menunggu': 'Menunggu Pembayaran',
+                'dikemas': 'Sedang Dikemas',
                 'diproses': 'Sedang Diproses',
                 'dikirim': 'Dalam Pengiriman',
                 'selesai': 'Selesai',
-                'dibatalkan': 'Dibatalkan'
+                'dibatalkan': 'Dibatalkan',
+                '': 'Menunggu Pembayaran'  // Handle empty status
             };
-            return statusMap[status] || status;
+            return statusMap[status] || 'Status Tidak Dikenal';
         }
 
         function formatDate(dateStr) {
@@ -497,6 +568,94 @@
         }
 
         document.addEventListener('DOMContentLoaded', init);
+
+        // Payment functionality
+        async function checkPaymentStatus(orderId) {
+            try {
+                const resp = await API.authFetch(`/orders/${orderId}/payments`);
+                if (!resp.ok) {
+                    API.showModal({ title: 'Error', message: 'Gagal memuat data pembayaran.' });
+                    return;
+                }
+                
+                const payments = await resp.json();
+                if (payments.length === 0) {
+                    API.showModal({ 
+                        title: 'Belum Ada Pembayaran', 
+                        message: 'Belum ada data pembayaran untuk pesanan ini. Silakan buat pembayaran terlebih dahulu.' 
+                    });
+                    return;
+                }
+                
+                const payment = payments[0];
+                if (payment.status_pembayaran === 'sudah_dibayar') {
+                    API.showModal({ 
+                        title: 'Pembayaran Sudah Dikonfirmasi', 
+                        message: 'Pembayaran untuk pesanan ini sudah dikonfirmasi.' 
+                    });
+                } else if (payment.status_pembayaran === 'belum_dibayar') {
+                    // Get order details for payment authentication
+                    const order = allOrders.find(o => o.pesanan_id === orderId);
+                    const amount = order ? order.total_harga : 0;
+                    
+                    API.showModal({
+                        title: 'Konfirmasi Pembayaran',
+                        message: `Metode pembayaran: ${payment.metode}\nTotal: Rp ${Number(amount).toLocaleString('id-ID')}\n\nApakah Anda sudah melakukan pembayaran dan siap untuk konfirmasi?`,
+                        actions: [
+                            { label: 'Belum Bayar', variant: 'secondary', handler: API.hideModal },
+                            {
+                                label: 'Sudah Bayar, Lanjut Autentikasi',
+                                variant: 'primary',
+                                handler: async () => {
+                                    API.hideModal();
+                                    await confirmPayment(payment.pembayaran_id, orderId, amount, payment.metode);
+                                }
+                            }
+                        ]
+                    });
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
+            }
+        }
+
+        async function confirmPayment(paymentId, orderId, amount, method) {
+            // Redirect to payment authentication page
+            const authUrl = `payment-auth.html?payment_id=${paymentId}&order_id=${orderId}&amount=${amount}&method=${method}`;
+            window.location.href = authUrl;
+        }
+
+        // Check if returning from payment authentication
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment_success') === 'true') {
+                // Remove the parameter from URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // Show success message
+                if (window.API && window.API.showModal) {
+                    API.showModal({
+                        title: 'Pembayaran Berhasil',
+                        message: 'Pembayaran Anda telah berhasil dikonfirmasi! Status pesanan akan segera diperbarui.',
+                        actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
+                    });
+                }
+                
+                // Refresh orders to show updated status
+                setTimeout(() => {
+                    loadOrders();
+                }, 1000);
+            }
+        });
+
+        // Auto refresh every 30 seconds to catch new orders
+        setInterval(async () => {
+            try {
+                await loadOrders();
+            } catch (e) {
+                console.log('Auto refresh failed:', e);
+            }
+        }, 30000);
     </script>
 </body>
 

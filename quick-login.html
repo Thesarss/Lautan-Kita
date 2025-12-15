@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Login - Lautan Kita</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            max-width: 500px; 
+            margin: 50px auto; 
+            background: #f8f9fa;
+        }
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn { 
+            width: 100%;
+            padding: 15px; 
+            margin: 10px 0; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .status { 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 5px; 
+            text-align: center;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        h1 { text-align: center; color: #0077B6; }
+        .logo { text-align: center; font-size: 48px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">🐟</div>
+        <h1>Quick Login - Lautan Kita</h1>
+        <p style="text-align: center; color: #666;">Login cepat untuk testing dashboard pembeli</p>
+
+        <div id="status" class="status info">Siap untuk login</div>
+
+        <button class="btn btn-primary" onclick="quickLogin()">
+            🔐 Login sebagai Pembeli Test
+        </button>
+
+        <button class="btn btn-success" onclick="openDashboard()" id="dashboardBtn" style="display: none;">
+            📊 Buka Dashboard Pembeli
+        </button>
+
+        <button class="btn btn-warning" onclick="clearData()">
+            🗑️ Clear Data & Logout
+        </button>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; font-size: 14px;">
+            <strong>Test Credentials:</strong><br>
+            Email: pembeli@test.com<br>
+            Password: password123
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:4000';
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function quickLogin() {
+            try {
+                updateStatus('🔄 Melakukan login...', 'info');
+
+                // Test backend first
+                const healthCheck = await fetch(`${API_BASE}/health`);
+                if (!healthCheck.ok) {
+                    throw new Error('Backend server tidak berjalan. Pastikan server sudah dijalankan.');
+                }
+
+                // Login
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'pembeli@test.com',
+                        password: 'password123'
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.text();
+                    throw new Error(`Login gagal: ${error}`);
+                }
+
+                const data = await response.json();
+                localStorage.setItem('auth_token', data.token);
+
+                // Test orders API
+                const ordersResponse = await fetch(`${API_BASE}/orders/my-orders`, {
+                    headers: {
+                        'Authorization': `Bearer ${data.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!ordersResponse.ok) {
+                    throw new Error('Orders API tidak dapat diakses');
+                }
+
+                const orders = await ordersResponse.json();
+                
+                updateStatus(`✅ Login berhasil! Ditemukan ${orders.length} pesanan untuk ${data.user.nama}`, 'success');
+                document.getElementById('dashboardBtn').style.display = 'block';
+
+            } catch (error) {
+                updateStatus(`❌ ${error.message}`, 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        function openDashboard() {
+            window.open('dashboard-pembeli.html', '_blank');
+        }
+
+        function clearData() {
+            localStorage.removeItem('auth_token');
+            document.getElementById('dashboardBtn').style.display = 'none';
+            updateStatus('🗑️ Data cleared. Silakan login ulang.', 'info');
+        }
+
+        // Check if already logged in
+        window.addEventListener('load', async () => {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                try {
+                    const response = await fetch(`${API_BASE}/auth/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const user = await response.json();
+                        updateStatus(`✅ Sudah login sebagai ${user.nama}`, 'success');
+                        document.getElementById('dashboardBtn').style.display = 'block';
+                    } else {
+                        localStorage.removeItem('auth_token');
+                        updateStatus('Token expired. Silakan login ulang.', 'info');
+                    }
+                } catch (error) {
+                    updateStatus('Siap untuk login', 'info');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

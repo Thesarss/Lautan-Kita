@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dashboard Frontend</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        .info { background: #e3f2fd; color: #1565c0; }
+    </style>
+</head>
+<body>
+    <h1>Debug Dashboard Frontend</h1>
+    <div id="logs"></div>
+    
+    <script>
+        const API_BASE = 'http://localhost:4000';
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            document.getElementById('logs').appendChild(div);
+            console.log(message);
+        }
+        
+        async function testDashboardFlow() {
+            log('🚀 Starting dashboard debug test');
+            
+            // Step 1: Test login
+            log('🔄 Step 1: Testing login...');
+            try {
+                const loginResp = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'pembeli@test.com', 
+                        password: 'password123' 
+                    })
+                });
+                
+                if (!loginResp.ok) {
+                    log(`❌ Login failed: ${loginResp.status}`, 'error');
+                    return;
+                }
+                
+                const loginData = await loginResp.json();
+                log(`✅ Login successful, got token and user data`, 'success');
+                localStorage.setItem('auth_token', loginData.token);
+                
+                // Step 2: Test user info
+                log('🔄 Step 2: Testing user info...');
+                const userResp = await fetch(API_BASE + '/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${loginData.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!userResp.ok) {
+                    log(`❌ User info failed: ${userResp.status}`, 'error');
+                    return;
+                }
+                
+                const user = await userResp.json();
+                log(`✅ User info successful: ${user.nama} (${user.role})`, 'success');
+                
+                // Step 3: Test orders
+                log('🔄 Step 3: Testing orders API...');
+                const ordersResp = await fetch(API_BASE + '/orders/my-orders', {
+                    headers: {
+                        'Authorization': `Bearer ${loginData.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!ordersResp.ok) {
+                    log(`❌ Orders API failed: ${ordersResp.status}`, 'error');
+                    return;
+                }
+                
+                const orders = await ordersResp.json();
+                log(`✅ Orders API successful: ${orders.length} orders found`, 'success');
+                
+                // Step 4: Test dashboard functions
+                log('🔄 Step 4: Testing dashboard functions...');
+                
+                // Simulate the dashboard init process
+                log('📊 Simulating dashboard init...');
+                
+                // Test stats calculation
+                const stats = {
+                    pending: 0,
+                    menunggu: 0,
+                    dikemas: 0,
+                    diproses: 0,
+                    dikirim: 0,
+                    selesai: 0,
+                    dibatalkan: 0,
+                    empty: 0
+                };
+
+                orders.forEach(order => {
+                    const status = order.status || order.status_pesanan || '';
+                    log(`📋 Order ${order.pesanan_id}: status="${status}"`);
+                    if (status === '') {
+                        stats.empty++;
+                        stats.menunggu++;
+                    } else if (stats.hasOwnProperty(status)) {
+                        stats[status]++;
+                    }
+                });
+                
+                log(`📊 Stats calculated:`, 'info');
+                log(`   - Menunggu: ${stats.pending + stats.menunggu}`, 'info');
+                log(`   - Diproses: ${stats.dikemas + stats.diproses}`, 'info');
+                log(`   - Dikirim: ${stats.dikirim}`, 'info');
+                log(`   - Selesai: ${stats.selesai}`, 'info');
+                log(`   - Empty status: ${stats.empty}`, 'info');
+                
+                // Test rendering
+                log('🎨 Testing order rendering...');
+                const container = document.createElement('div');
+                
+                if (orders.length === 0) {
+                    container.innerHTML = `<p>No orders found</p>`;
+                    log('⚠️ No orders to render', 'error');
+                } else {
+                    container.innerHTML = orders.slice(0, 3).map(order => {
+                        const status = order.status || order.status_pesanan || '';
+                        const normalizedStatus = status === '' ? 'menunggu' : status;
+                        return `<div>Order #${order.pesanan_id} - Status: ${normalizedStatus}</div>`;
+                    }).join('');
+                    log(`✅ Successfully rendered ${Math.min(3, orders.length)} orders`, 'success');
+                }
+                
+                log('🏁 All tests completed successfully!', 'success');
+                
+            } catch (e) {
+                log(`❌ Error during testing: ${e.message}`, 'error');
+                console.error('Full error:', e);
+            }
+        }
+        
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', testDashboardFlow);
+    </script>
+</body>
+</html>

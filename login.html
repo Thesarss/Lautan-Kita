@@ -234,15 +234,33 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email, password })
             });
+            
             if (!resp.ok) {
-              API.showModal({ title: 'Login', message: 'Login gagal.' });
+              const errorText = await resp.text();
+              console.error('Login failed:', resp.status, errorText);
+              API.showModal({ title: 'Login Gagal', message: 'Email atau password salah.' });
               return;
             }
+            
             const data = await resp.json();
             localStorage.setItem('auth_token', data.token);
-            API.showModal({ title: 'Login', message: 'Login berhasil!', actions: [{ label: 'Ke Beranda', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'home_final.html'; } }] });
-          } catch {
-            API.showModal({ title: 'Jaringan', message: 'Terjadi kesalahan jaringan.' });
+            
+            // Redirect based on user role
+            if (data.user.role === 'pembeli') {
+              API.showModal({ title: 'Login', message: 'Login berhasil!', actions: [{ label: 'Ke Dashboard', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'dashboard-pembeli.html'; } }] });
+            } else if (data.user.role === 'penjual') {
+              API.showModal({ title: 'Login', message: 'Login berhasil!', actions: [{ label: 'Ke Dashboard', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'dashboard-penjual.html'; } }] });
+            } else if (data.user.role === 'admin') {
+              API.showModal({ title: 'Login', message: 'Login berhasil!', actions: [{ label: 'Ke Dashboard', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'admin.html'; } }] });
+            } else {
+              API.showModal({ title: 'Login', message: 'Login berhasil!', actions: [{ label: 'Ke Beranda', variant: 'primary', handler: function(){ API.hideModal(); window.location.href = 'home_final.html'; } }] });
+            }
+          } catch (error) {
+            console.error('Network error:', error);
+            API.showModal({ 
+              title: 'Kesalahan Jaringan', 
+              message: 'Tidak dapat terhubung ke server. Pastikan server backend berjalan di http://localhost:4000' 
+            });
           }
         }
       });

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Flow</title>
+    <script src="assets/js/api.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .log { background: #f5f5f5; padding: 10px; margin: 5px 0; border-radius: 4px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 10px; background: #0077B6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test Login Flow</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testDashboard()">Test Dashboard (after login)</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <div id="logs"></div>
+    
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            document.getElementById('logs').appendChild(div);
+            console.log(message);
+        }
+        
+        async function testLogin() {
+            log('🔄 Testing login...');
+            try {
+                const resp = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'pembeli@test.com', 
+                        password: 'password123' 
+                    })
+                });
+                
+                if (!resp.ok) {
+                    log(`❌ Login failed: ${resp.status}`, 'error');
+                    return;
+                }
+                
+                const data = await resp.json();
+                localStorage.setItem('auth_token', data.token);
+                log(`✅ Login successful! Token stored.`, 'success');
+                log(`User: ${data.user.nama} (${data.user.role})`, 'success');
+                
+            } catch (e) {
+                log(`❌ Login error: ${e.message}`, 'error');
+            }
+        }
+        
+        async function testDashboard() {
+            log('🔄 Testing dashboard flow...');
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                log('❌ No token found. Please login first.', 'error');
+                return;
+            }
+            
+            try {
+                // Test user info
+                log('🔄 Testing user info...');
+                const userResp = await fetch(API_BASE + '/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!userResp.ok) {
+                    log(`❌ User info failed: ${userResp.status}`, 'error');
+                    return;
+                }
+                
+                const user = await userResp.json();
+                log(`✅ User info: ${user.nama} (${user.role})`, 'success');
+                
+                // Test orders
+                log('🔄 Testing orders...');
+                const ordersResp = await fetch(API_BASE + '/orders/my-orders', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!ordersResp.ok) {
+                    log(`❌ Orders failed: ${ordersResp.status}`, 'error');
+                    return;
+                }
+                
+                const orders = await ordersResp.json();
+                log(`✅ Orders loaded: ${orders.length} orders`, 'success');
+                
+                // Show first few orders
+                orders.slice(0, 3).forEach(order => {
+                    const status = order.status || order.status_pesanan || '';
+                    log(`   Order #${order.pesanan_id}: ${status} - Rp ${Number(order.total_harga).toLocaleString()}`);
+                });
+                
+                log('✅ Dashboard flow test completed successfully!', 'success');
+                
+            } catch (e) {
+                log(`❌ Dashboard test error: ${e.message}`, 'error');
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.clear();
+            log('🗑️ Storage cleared', 'info');
+        }
+    </script>
+</body>
+</html>

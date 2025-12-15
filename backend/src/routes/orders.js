@@ -100,6 +100,10 @@ router.get('/orders/my-orders', requireAuth, requireRole(['pembeli']), async (re
         WHERE i.pesanan_id = ?
       `, [order.pesanan_id]);
       order.items = items;
+      
+      // Ensure backward compatibility
+      order.status_pesanan = order.status;
+      order.created_at = order.tanggal_pesanan;
     }
 
     res.json(orders);
@@ -226,29 +230,22 @@ router.patch('/orders/:id/pack', requireAuth, requireRole(['penjual']), [
       return res.status(403).json({ error: 'forbidden' });
     }
 
-    // Auto-assign kurir secara acak (round-robin)
-    const [kuriers] = await conn.query(`
-      SELECT user_id, 
-        (SELECT COUNT(*) FROM pesanan WHERE kurir_id = user.user_id AND status_pesanan IN ('dikirim')) as active_deliveries
-      FROM user 
-      WHERE role = 'kurir' 
-      ORDER BY active_deliveries ASC, RAND() 
-      LIMIT 1
-    `);
-
-    let kurirId = null;
-    if (kuriers.length > 0) {
-      kurirId = kuriers[0].user_id;
+    // Check current status
+    const [orderCheck] = await conn.query('SELECT status_pesanan FROM pesanan WHERE pesanan_id = ?', [req.params.id]);
+    if (!orderCheck.length || orderCheck[0].status_pesanan !== 'pending') {
+      await conn.rollback();
+      return res.status(409).json({ error: 'invalid_status' });
     }
 
+    // Update to dikemas without assigning kurir yet (kurir will self-assign when picking up)
     await conn.query(`
       UPDATE pesanan 
-      SET status_pesanan = 'dikemas', tanggal_dikemas = NOW(), kurir_id = ?
-      WHERE pesanan_id = ? AND status_pesanan = 'pending'
-    `, [kurirId, req.params.id]);
+      SET status_pesanan = 'dikemas', tanggal_dikemas = NOW()
+      WHERE pesanan_id = ?
+    `, [req.params.id]);
 
     await conn.commit();
-    res.json({ ok: true, kurir_assigned: kurirId !== null });
+    res.json({ ok: true, message: 'Pesanan berhasil dikemas dan siap untuk diambil kurir' });
   } catch (e) {
     try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
@@ -266,14 +263,36 @@ router.patch('/orders/:id/ship', requireAuth, requireRole(['kurir']), [
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    
+    // Check if order is available for pickup
+    const [orderCheck] = await conn.query(`
+      SELECT pesanan_id, kurir_id, status_pesanan 
+      FROM pesanan 
+      WHERE pesanan_id = ? AND status_pesanan = 'dikemas'
+    `, [req.params.id]);
+    
+    if (!orderCheck.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'order_not_found_or_invalid_status' });
+    }
+    
+    const order = orderCheck[0];
+    
+    // If already assigned to another kurir, reject
+    if (order.kurir_id && order.kurir_id !== req.user.id) {
+      await conn.rollback();
+      return res.status(409).json({ error: 'already_assigned_to_another_kurir' });
+    }
+    
+    // Assign kurir and update status
     await conn.query(`
       UPDATE pesanan 
       SET status_pesanan = 'dikirim', kurir_id = ?, tanggal_dikirim = NOW() 
-      WHERE pesanan_id = ? AND status_pesanan = 'dikemas'
+      WHERE pesanan_id = ?
     `, [req.user.id, req.params.id]);
 
     await conn.commit();
-    res.json({ ok: true });
+    res.json({ ok: true, message: 'Pesanan berhasil diambil dan sedang dikirim' });
   } catch (e) {
     try { await conn.rollback(); } catch { }
     res.status(500).json({ error: 'internal_error' });
@@ -375,7 +394,7 @@ router.get('/kurir/deliveries', requireAuth, requireRole(['kurir']), async (req,
       LEFT JOIN pesanan_item pi ON pi.pesanan_id = p.pesanan_id
       LEFT JOIN produk pr ON pr.produk_id = pi.produk_id
       WHERE p.status_pesanan IN ('dikemas', 'dikirim', 'selesai')
-        AND p.kurir_id = ?
+        AND (p.kurir_id = ? OR (p.status_pesanan = 'dikemas' AND p.kurir_id IS NULL))
       GROUP BY p.pesanan_id
       ORDER BY 
         CASE p.status_pesanan

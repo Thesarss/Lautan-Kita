@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard Access</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #e8f5e9; border-color: #4caf50; }
+        .error { background: #ffebee; border-color: #f44336; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        button { padding: 10px 20px; margin: 5px; background: #0077B6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .token { font-family: monospace; font-size: 12px; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <h1>Test Dashboard Access</h1>
+    
+    <div class="step">
+        <h3>Step 1: Login and Store Token</h3>
+        <button onclick="doLogin()">Login as Pembeli</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="step">
+        <h3>Step 2: Check Stored Token</h3>
+        <button onclick="checkToken()">Check Token</button>
+        <div id="tokenResult"></div>
+    </div>
+    
+    <div class="step">
+        <h3>Step 3: Test Dashboard Access</h3>
+        <button onclick="testDashboard()">Test Dashboard</button>
+        <div id="dashboardResult"></div>
+    </div>
+    
+    <div class="step">
+        <h3>Step 4: Open Dashboard</h3>
+        <button onclick="openDashboard()">Open Dashboard</button>
+        <button onclick="openDebugDashboard()">Open Debug Dashboard</button>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:4000';
+        
+        async function doLogin() {
+            const result = document.getElementById('loginResult');
+            result.innerHTML = 'Logging in...';
+            
+            try {
+                const resp = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'pembeli@test.com', 
+                        password: 'password123' 
+                    })
+                });
+                
+                if (!resp.ok) {
+                    result.innerHTML = `<div class="error">Login failed: ${resp.status}</div>`;
+                    return;
+                }
+                
+                const data = await resp.json();
+                localStorage.setItem('auth_token', data.token);
+                
+                result.innerHTML = `
+                    <div class="success">
+                        <p>✅ Login successful!</p>
+                        <p>User: ${data.user.nama} (${data.user.role})</p>
+                        <p>Token stored in localStorage</p>
+                    </div>
+                `;
+                
+            } catch (e) {
+                result.innerHTML = `<div class="error">Login error: ${e.message}</div>`;
+            }
+        }
+        
+        function checkToken() {
+            const result = document.getElementById('tokenResult');
+            const token = localStorage.getItem('auth_token');
+            
+            if (token) {
+                result.innerHTML = `
+                    <div class="success">
+                        <p>✅ Token found in localStorage</p>
+                        <p class="token">Token: ${token}</p>
+                    </div>
+                `;
+            } else {
+                result.innerHTML = `<div class="error">❌ No token found in localStorage</div>`;
+            }
+        }
+        
+        async function testDashboard() {
+            const result = document.getElementById('dashboardResult');
+            result.innerHTML = 'Testing dashboard access...';
+            
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                result.innerHTML = `<div class="error">❌ No token found. Please login first.</div>`;
+                return;
+            }
+            
+            try {
+                // Test user info
+                const userResp = await fetch(API_BASE + '/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!userResp.ok) {
+                    result.innerHTML = `<div class="error">❌ User info failed: ${userResp.status}</div>`;
+                    return;
+                }
+                
+                const user = await userResp.json();
+                
+                // Test orders
+                const ordersResp = await fetch(API_BASE + '/orders/my-orders', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!ordersResp.ok) {
+                    result.innerHTML = `<div class="error">❌ Orders failed: ${ordersResp.status}</div>`;
+                    return;
+                }
+                
+                const orders = await ordersResp.json();
+                
+                result.innerHTML = `
+                    <div class="success">
+                        <p>✅ Dashboard access test successful!</p>
+                        <p>User: ${user.nama} (${user.role})</p>
+                        <p>Orders: ${orders.length} found</p>
+                        <p>Ready to open dashboard</p>
+                    </div>
+                `;
+                
+            } catch (e) {
+                result.innerHTML = `<div class="error">❌ Dashboard test error: ${e.message}</div>`;
+            }
+        }
+        
+        function openDashboard() {
+            window.open('dashboard-pembeli.html', '_blank');
+        }
+        
+        function openDebugDashboard() {
+            window.open('dashboard-pembeli-debug.html', '_blank');
+        }
+    </script>
+</body>
+</html>

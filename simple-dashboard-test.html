@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Dashboard Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        .info { background: #e3f2fd; color: #1565c0; }
+    </style>
+    <script src="assets/js/api.js"></script>
+</head>
+<body>
+    <h1>Simple Dashboard Test</h1>
+    
+    <div id="status" class="debug info">Initializing...</div>
+    <div id="userInfo" class="debug"></div>
+    <div id="ordersInfo" class="debug"></div>
+    <div id="ordersData" class="debug"></div>
+
+    <script>
+        const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
+        let allOrders = [];
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `debug ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function updateUserInfo(message, type = 'info') {
+            const div = document.getElementById('userInfo');
+            div.innerHTML = `<strong>User Info:</strong><br>${message}`;
+            div.className = `debug ${type}`;
+        }
+
+        function updateOrdersInfo(message, type = 'info') {
+            const div = document.getElementById('ordersInfo');
+            div.innerHTML = `<strong>Orders Info:</strong><br>${message}`;
+            div.className = `debug ${type}`;
+        }
+
+        function updateOrdersData(orders) {
+            const div = document.getElementById('ordersData');
+            if (orders && orders.length > 0) {
+                div.innerHTML = `<strong>Orders Data (${orders.length} orders):</strong><br><pre>${JSON.stringify(orders.slice(0, 2), null, 2)}</pre>`;
+                div.className = 'debug success';
+            } else {
+                div.innerHTML = `<strong>Orders Data:</strong><br>No orders found`;
+                div.className = 'debug error';
+            }
+        }
+
+        async function init() {
+            updateStatus('Starting initialization...');
+
+            // Check if API object exists
+            if (!window.API) {
+                updateStatus('❌ API object not found! Check if assets/js/api.js is loaded correctly.', 'error');
+                return;
+            }
+
+            updateStatus('✅ API object found. Checking authentication...');
+
+            // Check authentication
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                updateStatus('❌ No auth token found. Please login first.', 'error');
+                updateUserInfo('Not logged in', 'error');
+                return;
+            }
+
+            updateStatus('✅ Auth token found. Verifying with server...');
+
+            try {
+                // Verify authentication
+                const authResp = await API.authFetch('/auth/me');
+                if (!authResp.ok) {
+                    updateStatus('❌ Authentication failed. Token may be expired.', 'error');
+                    updateUserInfo('Authentication failed', 'error');
+                    return;
+                }
+
+                const user = await authResp.json();
+                updateStatus('✅ Authentication successful. Loading orders...');
+                updateUserInfo(`Name: ${user.nama}<br>Email: ${user.email}<br>Role: ${user.role}`, 'success');
+
+                if (user.role !== 'pembeli') {
+                    updateStatus('❌ User is not a pembeli. Access denied.', 'error');
+                    return;
+                }
+
+                // Load orders
+                const ordersResp = await API.authFetch('/orders/my-orders');
+                if (!ordersResp.ok) {
+                    const errorText = await ordersResp.text();
+                    updateStatus(`❌ Failed to load orders: ${ordersResp.status}`, 'error');
+                    updateOrdersInfo(`Error: ${errorText}`, 'error');
+                    return;
+                }
+
+                allOrders = await ordersResp.json();
+                updateStatus(`✅ Successfully loaded ${allOrders.length} orders!`, 'success');
+                updateOrdersInfo(`Found ${allOrders.length} orders`, 'success');
+                updateOrdersData(allOrders);
+
+                // Calculate stats
+                const stats = {
+                    pending: 0,
+                    menunggu: 0,
+                    dikemas: 0,
+                    diproses: 0,
+                    dikirim: 0,
+                    selesai: 0,
+                    dibatalkan: 0,
+                    empty: 0
+                };
+
+                allOrders.forEach(order => {
+                    const status = order.status || order.status_pesanan || '';
+                    if (status === '') {
+                        stats.empty++;
+                        stats.menunggu++;
+                    } else if (stats.hasOwnProperty(status)) {
+                        stats[status]++;
+                    }
+                });
+
+                updateOrdersInfo(`Found ${allOrders.length} orders<br>Stats: ${JSON.stringify(stats, null, 2)}`, 'success');
+
+            } catch (error) {
+                updateStatus(`❌ Error during initialization: ${error.message}`, 'error');
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Auto-login for testing
+        async function autoLogin() {
+            updateStatus('Attempting auto-login...');
+            
+            try {
+                const resp = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'pembeli@test.com',
+                        password: 'password123'
+                    })
+                });
+
+                if (resp.ok) {
+                    const data = await resp.json();
+                    localStorage.setItem('auth_token', data.token);
+                    updateStatus('✅ Auto-login successful. Initializing dashboard...');
+                    await init();
+                } else {
+                    const error = await resp.text();
+                    updateStatus(`❌ Auto-login failed: ${error}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(`❌ Auto-login error: ${error.message}`, 'error');
+            }
+        }
+
+        // Check if already logged in, otherwise auto-login
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                await init();
+            } else {
+                await autoLogin();
+            }
+        });
+    </script>
+</body>
+</html>

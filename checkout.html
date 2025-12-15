@@ -306,79 +306,7 @@
       API.showModal({ title: 'Keranjang', message: 'Produk ditambahkan ke keranjang!', actions: [{ label: 'Lihat Keranjang', variant: 'primary', handler: function () { API.hideModal(); window.location.href = 'keranjang.html'; } }] });
     }
 
-    // Daftar produk referensi
-    const products = {
-      'ikan belanak': {
-        id: 'ikan belanak',
-        name: 'Ikan Belanak',
-        price: 40000,
-        image: 'img/ikan-belanak.png',
-        description: 'Ikan belanak segar langsung dari laut, ditangkap pagi ini dengan metode ramah lingkungan.',
-        seller: 'Budi Fisherman',
-        rating: 5,
-        stock: '15'
-      },
-      'ikan puri': {
-        id: 'ikan puri',
-        name: 'Ikan Puri',
-        price: 25000,
-        image: 'img/ikan-puri.png',
-        description: 'Ikan puri segar dengan daging yang lembut dan gurih.',
-        seller: 'Budi Fisherman',
-        rating: 4,
-        stock: '9'
-      },
-      'udang': {
-        id: 'udang',
-        name: 'Udang',
-        price: 28000,
-        image: 'img/udang.png',
-        description: 'Udang segar ukuran besar dengan cita rasa manis alami.',
-        seller: 'Susi Seafood',
-        rating: 5,
-        stock: '7'
-      },
-      'kepiting': {
-        id: 'kepiting',
-        name: 'Kepiting',
-        price: 40000,
-        image: 'img/kepiting.png',
-        description: 'Kepiting segar dengan daging yang padat dan lezat.',
-        seller: 'Joko Nelayan',
-        rating: 4,
-        stock: '15'
-      },
-      'ikan tongkol': {
-        id: 'ikan tongkol',
-        name: 'Ikan Tongkol',
-        price: 37000,
-        image: 'img/ikan-tongkol.png',
-        description: 'Ikan tongkol segar dengan tekstur daging yang kenyal.',
-        seller: 'Budi Fisherman',
-        rating: 4,
-        stock: '12'
-      },
-      'sotong': {
-        id: 'sotong',
-        name: 'Sotong',
-        price: 64000,
-        image: 'img/sotong.png',
-        description: 'Sotong segar dengan cita rasa khas yang lezat.',
-        seller: 'Joko Nelayan',
-        rating: 5,
-        stock: '8'
-      },
-      'ikan kakap': {
-        id: 'ikan kakap',
-        name: 'Ikan Kakap',
-        price: 72000,
-        image: 'img/ikan-kakap.png',
-        description: 'Ikan kakap merah segar dengan daging tebal dan lembut.',
-        seller: 'Susi Seafood',
-        rating: 5,
-        stock: '11'
-      }
-    };
+
 
     // Variabel global
     let cartItems = [];
@@ -442,8 +370,8 @@
       let sellerSet = new Set();
 
       cartItems.forEach((item, index) => {
-        const product = products[item.id] || item;
-        const sellerName = item.penjual_nama || product.seller || "-";
+        const product = item;
+        const sellerName = item.penjual_nama || "-";
         sellerSet.add(sellerName);
 
         const jumlah = item.quantity;
@@ -452,14 +380,13 @@
         card.innerHTML = `
           <div class="product-container">
             <div class="product-image-container">
-              <img src="${product.image}" class="product-img" onerror="this.src='img/default product.png'" alt="${product.name}">
+              <img src="${item.image || 'img/default product.png'}" class="product-img" onerror="this.src='img/default product.png'" alt="${item.name}">
             </div>
             <div class="product-info-container">
-              <h3>${product.name}</h3>
+              <h3>${item.name}</h3>
               <div style="color:#4b6a84;margin:4px 0 10px"><small>Penjual: ${sellerName}</small></div>
-              <p style="color:#555; margin-top:-10px; margin-bottom:12px;">${product.description || ""}</p>
-              <p>Hasil laut segar hasil tangkapan nelayan lokal. Cocok untuk berbagai jenis masakan khas Indonesia.</p>
-              <strong>Rp. ${product.price.toLocaleString('id-ID')}</strong>
+              <p style="color:#555; margin-top:-10px; margin-bottom:12px;">Hasil laut segar hasil tangkapan nelayan lokal. Cocok untuk berbagai jenis masakan khas Indonesia.</p>
+              <strong>Rp. ${item.price.toLocaleString('id-ID')}</strong>
               <div class="qty-box">
                 <button onclick="ubahJumlah(${index}, -1)">-</button>
                 <span id="jumlah-${index}">${jumlah}</span> Kg
@@ -479,10 +406,9 @@
 
     async function ubahJumlah(index, change) {
       const item = cartItems[index];
-      const product = products[item.id] || item;
       const newQty = item.quantity + change;
       if (newQty < 1) { showAlert('error', 'Minimal 1 kg'); return; }
-      if (product.stock && newQty > parseInt(product.stock)) { showAlert('error', `Stok hanya tersedia ${product.stock} kg`); return; }
+      if (item.stock && newQty > parseInt(item.stock)) { showAlert('error', `Stok hanya tersedia ${item.stock} kg`); return; }
       try {
         const resp = await API.authFetch('/carts/items/' + item.item_id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jumlah: newQty }) });
         if (!resp.ok) { showAlert('error', 'Gagal mengubah jumlah'); return; }
@@ -561,31 +487,28 @@
     function confirmPaymentPrompt(id) {
       API.showModal({
         title: 'Konfirmasi Pembayaran',
-        message: 'Apakah pembayaran telah dilakukan?',
+        message: 'Apakah pembayaran telah dilakukan? Sistem akan meminta autentikasi PIN untuk keamanan.',
         actions: [
-          { label: 'Belum', variant: 'secondary', handler: API.hideModal },
-          { label: 'Sudah, Konfirmasi', variant: 'primary', handler: function () { API.hideModal(); confirmPayment(id); } }
+          { label: 'Belum Bayar', variant: 'secondary', handler: API.hideModal },
+          { label: 'Sudah Bayar, Lanjut Autentikasi', variant: 'primary', handler: function () { API.hideModal(); confirmPayment(id); } }
         ]
       });
     }
 
     async function confirmPayment(id) {
-      const token = localStorage.getItem('auth_token');
-      if (!token) { showAlert('error', 'Silakan login'); return; }
+      // Redirect to payment authentication page like in dashboard
       try {
-        const resp = await API.authFetch('/payments/' + id + '/confirm', { method: 'POST' });
-        if (!resp.ok) { showAlert('error', 'Konfirmasi pembayaran gagal'); return; }
-        try {
-          const order = JSON.parse(localStorage.getItem('currentOrder') || '{}');
-          order.status_pembayaran = 'sudah_dibayar';
-          localStorage.setItem('currentOrder', JSON.stringify(order));
-        } catch { }
-        API.showModal({
-          title: 'Pembayaran Berhasil',
-          message: 'Terima kasih. Pembayaran Anda telah dikonfirmasi.',
-          actions: [{ label: 'Lihat Ringkasan', variant: 'primary', handler: function () { API.hideModal(); window.location.href = 'pembayaran-berhasil.html'; } }]
-        });
-      } catch { showAlert('error', 'Kesalahan jaringan'); }
+        const order = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+        const amount = order.total || 0;
+        const method = order.pembayaran || 'Bank Transfer';
+        const orderId = order.pesanan_id || '';
+        
+        const authUrl = `payment-auth.html?payment_id=${id}&order_id=${orderId}&amount=${amount}&method=${method}&from=checkout`;
+        window.location.href = authUrl;
+      } catch (e) {
+        console.error('Error redirecting to payment auth:', e);
+        showAlert('error', 'Gagal memproses pembayaran');
+      }
     }
 
     async function loadUserAvatar() {

@@ -23,7 +23,7 @@
     <div class="info-box">
       <p>Pesanan anda sedang diproses dan akan segera dikirim.<br>
       Jangan lupa untuk memberikan review saat paket tiba.</p>
-      <a href="rincian-pesanan.html" class="link">Lihat rincian pesanan</a>
+      <a href="#" id="orderDetailLink" class="link">Lihat rincian pesanan</a>
     </div>
   </div>
   <script src="assets/js/api.js"></script>
@@ -38,6 +38,21 @@
         const u = await resp.json();
         if (u.avatar_url) img.src = API.base + u.avatar_url;
       }catch{}
+
+      // Set up order detail link
+      const orderDetailLink = document.getElementById('orderDetailLink');
+      try {
+        const currentOrder = JSON.parse(localStorage.getItem('currentOrder') || '{}');
+        if (currentOrder.pesanan_id) {
+          orderDetailLink.href = `rincian-pesanan.html?id=${currentOrder.pesanan_id}`;
+        } else {
+          orderDetailLink.href = 'dashboard-pembeli.html';
+          orderDetailLink.textContent = 'Lihat Dashboard';
+        }
+      } catch (e) {
+        orderDetailLink.href = 'dashboard-pembeli.html';
+        orderDetailLink.textContent = 'Lihat Dashboard';
+      }
     });
   </script>
 </body>

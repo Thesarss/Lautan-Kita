@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login & Dashboard - Lautan Kita</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; color: #856404; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+        input { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; }
+        .step { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 3px; }
+    </style>
+    <script src="assets/js/api.js"></script>
+</head>
+<body>
+    <h1>🔧 Test Login & Dashboard - Lautan Kita</h1>
+    <p>This page will help debug why the dashboard is not showing data.</p>
+
+    <!-- Step 1: Check Backend -->
+    <div class="section">
+        <h3>Step 1: Check Backend Connection</h3>
+        <button onclick="checkBackend()">Test Backend</button>
+        <div id="backendResult" class="result"></div>
+    </div>
+
+    <!-- Step 2: Login Test -->
+    <div class="section">
+        <h3>Step 2: Login Test</h3>
+        <div>
+            <input type="email" id="loginEmail" value="pembeli@test.com" placeholder="Email">
+            <input type="password" id="loginPassword" value="password123" placeholder="Password">
+            <button onclick="testLogin()">Login</button>
+            <button onclick="checkCurrentAuth()">Check Current Auth</button>
+        </div>
+        <div id="loginResult" class="result"></div>
+    </div>
+
+    <!-- Step 3: Test Orders API -->
+    <div class="section">
+        <h3>Step 3: Test Orders API</h3>
+        <button onclick="testOrdersAPI()">Test Orders API</button>
+        <button onclick="testOrdersAPIRaw()">Test Raw API Call</button>
+        <div id="ordersResult" class="result"></div>
+    </div>
+
+    <!-- Step 4: Simulate Dashboard -->
+    <div class="section">
+        <h3>Step 4: Simulate Dashboard Loading</h3>
+        <button onclick="simulateDashboard()">Simulate Dashboard</button>
+        <div id="dashboardResult" class="result"></div>
+    </div>
+
+    <!-- Step 5: Full Test -->
+    <div class="section">
+        <h3>Step 5: Complete Flow Test</h3>
+        <button onclick="runCompleteTest()">Run Complete Test</button>
+        <div id="completeResult" class="result"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML = `<div class="${className}"><pre>${message}</pre></div>`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function appendLog(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML += `<div class="${className}"><pre>${message}</pre></div>`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        async function checkBackend() {
+            log('backendResult', 'Checking backend connection...');
+            
+            try {
+                // Test health endpoint
+                const healthResponse = await fetch(window.API.base + '/health');
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    log('backendResult', `✅ Backend is running!\nHealth check: ${JSON.stringify(healthData, null, 2)}`, 'success');
+                } else {
+                    log('backendResult', `❌ Backend health check failed: ${healthResponse.status}`, 'error');
+                }
+            } catch (error) {
+                log('backendResult', `❌ Backend connection failed: ${error.message}\n\nPossible issues:\n- Backend server not running\n- Wrong URL: ${window.API.base}\n- CORS issues`, 'error');
+            }
+        }
+
+        async function checkCurrentAuth() {
+            const token = localStorage.getItem('auth_token');
+            
+            if (!token) {
+                log('loginResult', '❌ No auth token found in localStorage', 'error');
+                return false;
+            }
+
+            try {
+                log('loginResult', 'Checking current authentication...');
+                const response = await window.API.authFetch('/auth/me');
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    log('loginResult', `✅ Already logged in!\nUser: ${user.nama}\nEmail: ${user.email}\nRole: ${user.role}\nToken: ${token.substring(0, 50)}...`, 'success');
+                    return true;
+                } else {
+                    const error = await response.text();
+                    log('loginResult', `❌ Auth token invalid: ${response.status}\nError: ${error}\nClearing token...`, 'error');
+                    localStorage.removeItem('auth_token');
+                    return false;
+                }
+            } catch (error) {
+                log('loginResult', `❌ Auth check failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            log('loginResult', `Attempting login with ${email}...`);
+            
+            try {
+                const response = await fetch(window.API.base + '/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('auth_token', data.token);
+                    log('loginResult', `✅ Login successful!\nUser: ${data.user.nama}\nRole: ${data.user.role}\nToken saved to localStorage`, 'success');
+                    return true;
+                } else {
+                    const error = await response.text();
+                    log('loginResult', `❌ Login failed: ${response.status}\nError: ${error}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log('loginResult', `❌ Login request failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testOrdersAPI() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                log('ordersResult', '❌ No auth token. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                log('ordersResult', 'Testing orders API...');
+                const response = await window.API.authFetch('/orders/my-orders');
+                
+                console.log('Orders API Response:', response);
+                
+                if (response.ok) {
+                    const orders = await response.json();
+                    log('ordersResult', `✅ Orders API successful!\nFound ${orders.length} orders\n\nFirst 3 orders:\n${JSON.stringify(orders.slice(0, 3), null, 2)}`, 'success');
+                    return orders;
+                } else {
+                    const error = await response.text();
+                    log('ordersResult', `❌ Orders API failed: ${response.status}\nError: ${error}`, 'error');
+                    return null;
+                }
+            } catch (error) {
+                log('ordersResult', `❌ Orders API request failed: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function testOrdersAPIRaw() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                log('ordersResult', '❌ No auth token. Please login first.', 'error');
+                return;
+            }
+
+            try {
+                log('ordersResult', 'Testing raw orders API call...');
+                
+                const response = await fetch(window.API.base + '/orders/my-orders', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Raw API Response:', response);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const responseText = await response.text();
+                console.log('Raw response text:', responseText);
+                
+                if (response.ok) {
+                    try {
+                        const orders = JSON.parse(responseText);
+                        appendLog('ordersResult', `✅ Raw API successful!\nFound ${orders.length} orders\nResponse: ${responseText.substring(0, 500)}...`, 'success');
+                    } catch (parseError) {
+                        appendLog('ordersResult', `⚠️ API returned 200 but invalid JSON:\n${responseText}`, 'warning');
+                    }
+                } else {
+                    appendLog('ordersResult', `❌ Raw API failed: ${response.status}\nResponse: ${responseText}`, 'error');
+                }
+            } catch (error) {
+                appendLog('ordersResult', `❌ Raw API request failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateDashboard() {
+            log('dashboardResult', 'Simulating dashboard loading process...');
+            
+            // Step 1: Check auth
+            const isAuthenticated = await checkCurrentAuth();
+            if (!isAuthenticated) {
+                appendLog('dashboardResult', '❌ Authentication failed. Dashboard would redirect to login.', 'error');
+                return;
+            }
+            
+            // Step 2: Load orders
+            appendLog('dashboardResult', 'Loading orders...');
+            const orders = await testOrdersAPI();
+            
+            if (!orders) {
+                appendLog('dashboardResult', '❌ Failed to load orders. Dashboard would show error.', 'error');
+                return;
+            }
+            
+            // Step 3: Process orders (like dashboard does)
+            appendLog('dashboardResult', 'Processing orders...');
+            
+            const stats = {
+                pending: 0,
+                menunggu: 0,
+                dikemas: 0,
+                diproses: 0,
+                dikirim: 0,
+                selesai: 0,
+                dibatalkan: 0,
+                empty: 0
+            };
+
+            orders.forEach(order => {
+                const status = order.status || order.status_pesanan || '';
+                if (status === '') {
+                    stats.empty++;
+                    stats.menunggu++;
+                } else if (stats.hasOwnProperty(status)) {
+                    stats[status]++;
+                }
+            });
+            
+            appendLog('dashboardResult', `✅ Dashboard simulation successful!\n\nStats:\n${JSON.stringify(stats, null, 2)}\n\nDashboard would show:\n- Menunggu: ${stats.pending + stats.menunggu}\n- Diproses: ${stats.dikemas + stats.diproses}\n- Dikirim: ${stats.dikirim}\n- Selesai: ${stats.selesai}`, 'success');
+        }
+
+        async function runCompleteTest() {
+            log('completeResult', 'Running complete test flow...\n');
+            
+            // Step 1: Backend
+            appendLog('completeResult', '1. Testing backend...');
+            try {
+                const healthResponse = await fetch(window.API.base + '/health');
+                if (healthResponse.ok) {
+                    appendLog('completeResult', '✅ Backend is running', 'success');
+                } else {
+                    appendLog('completeResult', '❌ Backend not responding', 'error');
+                    return;
+                }
+            } catch (error) {
+                appendLog('completeResult', `❌ Backend connection failed: ${error.message}`, 'error');
+                return;
+            }
+            
+            // Step 2: Login
+            appendLog('completeResult', '2. Testing login...');
+            const loginSuccess = await testLogin();
+            if (!loginSuccess) {
+                appendLog('completeResult', '❌ Login failed', 'error');
+                return;
+            }
+            
+            // Step 3: Orders API
+            appendLog('completeResult', '3. Testing orders API...');
+            const orders = await testOrdersAPI();
+            if (!orders) {
+                appendLog('completeResult', '❌ Orders API failed', 'error');
+                return;
+            }
+            
+            // Step 4: Final result
+            appendLog('completeResult', `✅ ALL TESTS PASSED!\n\nThe dashboard should work now.\nFound ${orders.length} orders for the user.\n\n🎉 Try opening dashboard-pembeli.html now!`, 'success');
+        }
+
+        // Auto-run backend check on page load
+        window.addEventListener('load', () => {
+            checkBackend();
+            checkCurrentAuth();
+        });
+    </script>
+</body>
+</html>

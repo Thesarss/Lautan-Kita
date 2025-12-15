@@ -1100,23 +1100,51 @@
 
         async function loadDashboardData() {
             try {
-                // Load stats
-                const [usersResp, productsResp] = await Promise.all([
-                    API.authFetch('/admin/users'),
-                    fetch(API_BASE + '/products')
-                ]);
-
-                if (usersResp.ok) {
-                    const users = await usersResp.json();
-                    document.getElementById('statUsers').textContent = users.length;
-                }
-
-                if (productsResp.ok) {
-                    const products = await productsResp.json();
-                    document.getElementById('statProducts').textContent = products.length;
+                // Load comprehensive stats
+                const resp = await API.authFetch('/admin/stats');
+                if (resp.ok) {
+                    const stats = await resp.json();
+                    
+                    // Update dashboard stats
+                    document.getElementById('statUsers').textContent = stats.users.total_users || 0;
+                    document.getElementById('statProducts').textContent = stats.products.total_products || 0;
+                    document.getElementById('statOrders').textContent = stats.orders.total_orders || 0;
+                    document.getElementById('statRevenue').textContent = `Rp ${(stats.orders.total_revenue || 0).toLocaleString('id-ID')}`;
+                    
+                    // Update additional stats if elements exist
+                    const verifiedUsersEl = document.getElementById('statVerifiedUsers');
+                    if (verifiedUsersEl) verifiedUsersEl.textContent = stats.users.verified_users || 0;
+                    
+                    const activeProductsEl = document.getElementById('statActiveProducts');
+                    if (activeProductsEl) activeProductsEl.textContent = stats.products.active_products || 0;
+                    
+                    const completedOrdersEl = document.getElementById('statCompletedOrders');
+                    if (completedOrdersEl) completedOrdersEl.textContent = stats.orders.completed_orders || 0;
+                    
+                    const confirmedPaymentsEl = document.getElementById('statConfirmedPayments');
+                    if (confirmedPaymentsEl) confirmedPaymentsEl.textContent = stats.payments.confirmed_payments || 0;
                 }
             } catch (e) {
                 console.error('Failed to load dashboard data:', e);
+                // Fallback to individual requests
+                try {
+                    const [usersResp, productsResp] = await Promise.all([
+                        API.authFetch('/admin/users'),
+                        fetch(API_BASE + '/products')
+                    ]);
+
+                    if (usersResp.ok) {
+                        const users = await usersResp.json();
+                        document.getElementById('statUsers').textContent = users.length;
+                    }
+
+                    if (productsResp.ok) {
+                        const products = await productsResp.json();
+                        document.getElementById('statProducts').textContent = products.length;
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback loading failed:', fallbackError);
+                }
             }
         }
 
@@ -1184,8 +1212,90 @@
         }
 
         async function loadOrders() {
-            const tbody = document.getElementById('ordersTableBody');
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Fitur ini akan segera tersedia</td></tr>';
+            try {
+                const resp = await API.authFetch('/admin/orders');
+                if (!resp.ok) throw new Error('Failed to load orders');
+                
+                const orders = await resp.json();
+                const tbody = document.getElementById('ordersTableBody');
+                
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Tidak ada pesanan</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = orders.map(order => {
+                    const statusMap = {
+                        'pending': { label: 'Menunggu', class: 'warning' },
+                        'dikemas': { label: 'Dikemas', class: 'info' },
+                        'dikirim': { label: 'Dikirim', class: 'primary' },
+                        'selesai': { label: 'Selesai', class: 'success' },
+                        'dibatalkan': { label: 'Dibatalkan', class: 'danger' }
+                    };
+                    
+                    const status = statusMap[order.status_pesanan] || { label: order.status_pesanan, class: 'secondary' };
+                    
+                    return `
+                        <tr>
+                            <td>#${order.pesanan_id}</td>
+                            <td>${order.pembeli_nama}</td>
+                            <td>${order.total_items} item</td>
+                            <td>Rp ${Number(order.total_harga).toLocaleString('id-ID')}</td>
+                            <td>
+                                <span class="badge badge-${status.class}">${status.label}</span>
+                            </td>
+                            <td>${new Date(order.created_at).toLocaleDateString('id-ID')}</td>
+                            <td>
+                                <select onchange="updateOrderStatus(${order.pesanan_id}, this.value)" class="form-control form-control-sm">
+                                    <option value="">Ubah Status</option>
+                                    <option value="menunggu" ${order.status_pesanan === 'menunggu' || order.status_pesanan === 'pending' ? 'selected' : ''}>Menunggu</option>
+                                    <option value="diproses" ${order.status_pesanan === 'diproses' || order.status_pesanan === 'dikemas' ? 'selected' : ''}>Diproses</option>
+                                    <option value="dikirim" ${order.status_pesanan === 'dikirim' ? 'selected' : ''}>Dikirim</option>
+                                    <option value="selesai" ${order.status_pesanan === 'selesai' ? 'selected' : ''}>Selesai</option>
+                                    <option value="dibatalkan" ${order.status_pesanan === 'dibatalkan' ? 'selected' : ''}>Dibatalkan</option>
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (e) {
+                console.error('Failed to load orders:', e);
+                const tbody = document.getElementById('ordersTableBody');
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Gagal memuat data pesanan</td></tr>';
+            }
+        }
+        
+        async function updateOrderStatus(orderId, newStatus) {
+            if (!newStatus) return;
+            
+            if (!confirm(`Ubah status pesanan #${orderId} menjadi ${newStatus}?`)) {
+                // Reset select value
+                loadOrders();
+                return;
+            }
+            
+            try {
+                const resp = await API.authFetch(`/admin/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status_pesanan: newStatus })
+                });
+                
+                if (resp.ok) {
+                    API.showModal({
+                        title: 'Berhasil',
+                        message: 'Status pesanan berhasil diubah',
+                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); loadOrders(); } }]
+                    });
+                } else {
+                    throw new Error('Failed to update status');
+                }
+            } catch (e) {
+                console.error('Failed to update order status:', e);
+                API.showModal({ title: 'Error', message: 'Gagal mengubah status pesanan' });
+                loadOrders(); // Reset the select
+            }
         }
 
         let currentEditUserId = null;
@@ -1226,38 +1336,53 @@
                 return;
             }
 
-            tbody.innerHTML = filtered.map(t => `
-                <tr>
-                    <td>#${t.pembayaran_id}</td>
-                    <td>#${t.pesanan_id}</td>
-                    <td>${t.pembeli_nama || '-'}</td>
-                    <td>Rp ${Number(t.jumlah_bayar || 0).toLocaleString('id-ID')}</td>
-                    <td>${t.metode_pembayaran || '-'}</td>
-                    <td>
-                        <span class="badge badge-${t.status_pembayaran === 'confirmed' ? 'approved' : t.status_pembayaran === 'pending' ? 'pending' : 'rejected'}">
-                            ${t.status_pembayaran}
-                        </span>
-                    </td>
-                    <td>${new Date(t.tanggal_pembayaran).toLocaleDateString('id-ID')}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="viewTransactionDetail(${t.pembayaran_id})">
-                            <i class="fas fa-eye"></i> Detail
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = filtered.map(t => {
+                const statusMap = {
+                    'belum_dibayar': { label: 'Belum Dibayar', class: 'warning' },
+                    'sudah_dibayar': { label: 'Sudah Dibayar', class: 'success' },
+                    'gagal': { label: 'Gagal', class: 'danger' }
+                };
+                
+                const status = statusMap[t.status_pembayaran] || { label: t.status_pembayaran, class: 'secondary' };
+                
+                return `
+                    <tr>
+                        <td>#${t.pembayaran_id}</td>
+                        <td>#${t.pesanan_id}</td>
+                        <td>${t.pembeli_nama || '-'}</td>
+                        <td>Rp ${Number(t.jumlah_bayar || 0).toLocaleString('id-ID')}</td>
+                        <td>${t.metode || '-'}</td>
+                        <td>
+                            <span class="badge badge-${status.class}">
+                                ${status.label}
+                            </span>
+                        </td>
+                        <td>${t.tanggal_pembayaran ? new Date(t.tanggal_pembayaran).toLocaleDateString('id-ID') : '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="viewTransactionDetail(${t.pembayaran_id})">
+                                <i class="fas fa-eye"></i> Detail
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function updateTransactionSummary() {
             const total = allTransactions.reduce((sum, t) => sum + Number(t.jumlah_bayar || 0), 0);
-            const confirmed = allTransactions.filter(t => t.status_pembayaran === 'confirmed').length;
-            const pending = allTransactions.filter(t => t.status_pembayaran === 'pending').length;
-            const failed = allTransactions.filter(t => t.status_pembayaran === 'failed').length;
+            const confirmed = allTransactions.filter(t => t.status_pembayaran === 'sudah_dibayar').length;
+            const pending = allTransactions.filter(t => t.status_pembayaran === 'belum_dibayar').length;
+            const failed = allTransactions.filter(t => t.status_pembayaran === 'gagal').length;
 
-            document.getElementById('summaryTotal').textContent = `Rp ${total.toLocaleString('id-ID')}`;
-            document.getElementById('summaryConfirmed').textContent = confirmed;
-            document.getElementById('summaryPending').textContent = pending;
-            document.getElementById('summaryFailed').textContent = failed;
+            const summaryTotalEl = document.getElementById('summaryTotal');
+            const summaryConfirmedEl = document.getElementById('summaryConfirmed');
+            const summaryPendingEl = document.getElementById('summaryPending');
+            const summaryFailedEl = document.getElementById('summaryFailed');
+            
+            if (summaryTotalEl) summaryTotalEl.textContent = `Rp ${total.toLocaleString('id-ID')}`;
+            if (summaryConfirmedEl) summaryConfirmedEl.textContent = confirmed;
+            if (summaryPendingEl) summaryPendingEl.textContent = pending;
+            if (summaryFailedEl) summaryFailedEl.textContent = failed;
         }
 
         function viewTransactionDetail(transactionId) {

@@ -10,6 +10,7 @@ const cartsRouter = require('./routes/carts');
 const paymentsRouter = require('./routes/payments');
 const shipmentsRouter = require('./routes/shipments');
 const adminRouter = require('./routes/admin');
+const ratingsRouter = require('./routes/ratings');
 const { pool } = require('./db');
 
 const app = express();
@@ -26,6 +27,11 @@ try { if (!fs.existsSync(avatarsDir)) fs.mkdirSync(avatarsDir); } catch { }
 try { if (!fs.existsSync(productsDir)) fs.mkdirSync(productsDir); } catch { }
 app.use('/uploads', express.static(uploadsDir));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Backend server is running', timestamp: new Date().toISOString() });
+});
+
 app.use('/auth', authRouter);
 app.use('/', productsRouter);
 app.use('/', ordersRouter);
@@ -33,6 +39,7 @@ app.use('/', cartsRouter);
 app.use('/', paymentsRouter);
 app.use('/', shipmentsRouter);
 app.use('/', adminRouter);
+app.use('/', ratingsRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'not_found' });
@@ -123,6 +130,46 @@ app.listen(port, () => {
       if (statusEnum.length && !statusEnum[0].COLUMN_TYPE.includes('dikemas')) {
         await conn2.query("ALTER TABLE pesanan MODIFY COLUMN status_pesanan ENUM('pending','dikemas','dikirim','selesai','dibatalkan') DEFAULT 'pending'");
         console.log('Updated pesanan.status_pesanan enum');
+      }
+      
+      // Ensure seller rating table exists
+      const [ratingTable] = await conn2.query("SHOW TABLES LIKE 'rating_penjual'");
+      if (!ratingTable.length) {
+        await conn2.query(`
+          CREATE TABLE rating_penjual (
+            rating_id int(11) NOT NULL AUTO_INCREMENT,
+            penjual_id int(11) NOT NULL,
+            pembeli_id int(11) NOT NULL,
+            pesanan_id int(11) NOT NULL,
+            rating int(11) NOT NULL CHECK (rating between 1 and 5),
+            komentar text DEFAULT NULL,
+            status enum('aktif','disembunyikan') DEFAULT 'aktif',
+            dibuat_pada datetime DEFAULT current_timestamp(),
+            PRIMARY KEY (rating_id),
+            UNIQUE KEY unique_rating_per_order (pembeli_id, pesanan_id, penjual_id),
+            KEY fk_rating_penjual (penjual_id),
+            KEY fk_rating_pembeli (pembeli_id),
+            KEY fk_rating_pesanan (pesanan_id),
+            KEY idx_rating_penjual_status (penjual_id, status),
+            KEY idx_rating_created (dibuat_pada),
+            CONSTRAINT fk_rating_penjual FOREIGN KEY (penjual_id) REFERENCES user (user_id) ON DELETE CASCADE,
+            CONSTRAINT fk_rating_pembeli FOREIGN KEY (pembeli_id) REFERENCES user (user_id) ON DELETE CASCADE,
+            CONSTRAINT fk_rating_pesanan FOREIGN KEY (pesanan_id) REFERENCES pesanan (pesanan_id) ON DELETE CASCADE
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+        `);
+        console.log('Created rating_penjual table');
+      }
+      
+      // Ensure avg_rating and total_ratings columns exist in user table
+      const [ratingCols] = await conn2.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME IN ('avg_rating','total_ratings')");
+      const existingRatingCols = ratingCols.map(c => c.COLUMN_NAME);
+      if (!existingRatingCols.includes('avg_rating')) {
+        await conn2.query("ALTER TABLE user ADD COLUMN avg_rating DECIMAL(3,2) DEFAULT NULL");
+        console.log('Added user.avg_rating column');
+      }
+      if (!existingRatingCols.includes('total_ratings')) {
+        await conn2.query("ALTER TABLE user ADD COLUMN total_ratings INT(11) DEFAULT 0");
+        console.log('Added user.total_ratings column');
       }
     } finally { conn2.release(); }
   } catch (e) {

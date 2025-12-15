@@ -98,13 +98,22 @@ router.post('/login', [
   try {
     const conn = await pool.getConnection();
     try {
-      const [rows] = await conn.query('SELECT user_id,password_hash,role,verified FROM user WHERE email=? LIMIT 1', [email]);
+      const [rows] = await conn.query('SELECT user_id,nama,email,password_hash,role,verified FROM user WHERE email=? LIMIT 1', [email]);
       if (!rows.length) return res.status(401).json({ error: 'invalid_credentials' });
       const user = rows[0];
       const ok = await bcrypt.compare(password, user.password_hash);
       if (!ok) return res.status(401).json({ error: 'invalid_credentials' });
       const token = jwt.sign({ id: user.user_id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '2h' });
-      res.json({ token });
+      res.json({ 
+        token,
+        user: {
+          id: user.user_id,
+          nama: user.nama,
+          email: user.email,
+          role: user.role,
+          verified: user.verified
+        }
+      });
     } finally {
       conn.release();
     }

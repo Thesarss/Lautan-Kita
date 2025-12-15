@@ -117,89 +117,7 @@
             5: 'Cumi-cumi'
         };
 
-        // Fallback data produk lokal (jika backend tidak tersedia)
-        const localProducts = {
-            'ikan-belanak': {
-                id: 'ikan-belanak',
-                name: 'Ikan Belanak',
-                price: 40000,
-                image: 'img/ikan-belanak.png',
-                description: 'Ikan belanak segar langsung dari laut, ditangkap pagi ini dengan metode ramah lingkungan. Cocok untuk berbagai jenis masakan khas Indonesia.',
-                seller: 'Budi Fisherman',
-                rating: 5,
-                stock: 15,
-                category: 'Ikan Laut',
-                reviews: [
-                    { user: 'Santi', rating: 5, comment: 'Ikan belanaknya benar-benar segar! Dagingnya masih kenyal dan tidak berbau amis.<br>Rasanya enak sekali setelah digoreng. Terima kasih, Pak Nelayan! Pasti beli lagi!', img: 'img/ikan-belanak.png' }
-                ]
-            },
-            'ikan-puri': {
-                id: 'ikan-puri',
-                name: 'Ikan Puri',
-                price: 25000,
-                image: 'img/ikan-puri.png',
-                description: 'Ikan puri segar dengan daging yang lembut dan gurih. Hasil tangkapan nelayan lokal yang berkualitas.',
-                seller: 'Budi Fisherman',
-                rating: 4,
-                stock: 9,
-                category: 'Ikan Laut'
-            },
-            'udang': {
-                id: 'udang',
-                name: 'Udang',
-                price: 28000,
-                image: 'img/udang.png',
-                description: 'Udang segar ukuran besar dengan cita rasa manis alami. Langsung dari tambak nelayan lokal.',
-                seller: 'Susi Seafood',
-                rating: 5,
-                stock: 7,
-                category: 'Udang'
-            },
-            'kepiting': {
-                id: 'kepiting',
-                name: 'Kepiting',
-                price: 40000,
-                image: 'img/kepiting.png',
-                description: 'Kepiting segar dengan daging yang padat dan lezat. Cocok untuk berbagai olahan kepiting favorit Anda.',
-                seller: 'Joko Nelayan',
-                rating: 4,
-                stock: 15,
-                category: 'Kepiting'
-            },
-            'ikan-tongkol': {
-                id: 'ikan-tongkol',
-                name: 'Ikan Tongkol',
-                price: 37000,
-                image: 'img/ikan-tongkol.png',
-                description: 'Ikan tongkol segar dengan tekstur daging yang kenyal. Kaya akan protein dan omega-3.',
-                seller: 'Budi Fisherman',
-                rating: 4,
-                stock: 12,
-                category: 'Ikan Laut'
-            },
-            'sotong': {
-                id: 'sotong',
-                name: 'Sotong',
-                price: 64000,
-                image: 'img/sotong.png',
-                description: 'Sotong segar dengan cita rasa khas yang lezat. Hasil tangkapan terbaik dari nelayan lokal.',
-                seller: 'Joko Nelayan',
-                rating: 5,
-                stock: 8,
-                category: 'Sotong'
-            },
-            'ikan-kakap': {
-                id: 'ikan-kakap',
-                name: 'Ikan Kakap',
-                price: 72000,
-                image: 'img/ikan-kakap.png',
-                description: 'Ikan kakap merah segar dengan daging tebal dan lembut. Premium quality untuk hidangan istimewa.',
-                seller: 'Susi Seafood',
-                rating: 5,
-                stock: 11,
-                category: 'Ikan Laut'
-            }
-        };
+
 
         // Helper function untuk mendapatkan gambar default berdasarkan nama produk
         function getDefaultImage(productName) {
@@ -256,18 +174,10 @@
                     }
                 }
             } catch (e) {
-                console.log('Backend tidak tersedia, menggunakan data lokal');
-            }
-
-            // Fallback ke data lokal
-            const localProduct = localProducts[productId];
-            if (localProduct) {
-                currentProduct = localProduct;
-                renderProduct(localProduct);
-            } else {
+                console.error('Error loading product:', e);
                 API.showModal({
                     title: 'Error',
-                    message: 'Produk tidak ditemukan!',
+                    message: 'Gagal memuat produk. Silakan coba lagi.',
                     actions: [{ label: 'Kembali', variant: 'primary', handler: () => { window.location.href = 'home_final.html'; } }]
                 });
             }

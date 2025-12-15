@@ -1,0 +1,25 @@
+{
+  "name": "lautan-kita-testing-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive Black Box and White Box Testing Suite for Lautan Kita System",
+  "main": "run-all-tests.js",
+  "scripts": {
+    "test": "node run-all-tests.js",
+    "test:blackbox": "node blackbox-tests.js",
+    "test:whitebox": "node whitebox-analyzer.js",
+    "test:full": "node run-all-tests.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "keywords": [
+    "testing",
+    "black-box",
+    "white-box",
+    "cyclomatic-complexity",
+    "e-commerce",
+    "quality-assurance"
+  ],
+  "author": "Lautan Kita Development Team",
+  "license": "MIT"
+}

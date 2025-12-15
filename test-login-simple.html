@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Simple</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+        .form-group { margin: 15px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        .result { margin: 15px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+    <script src="assets/js/api.js"></script>
+</head>
+<body>
+    <h1>🔐 Test Login Simple</h1>
+    
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="pembeli@test.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="password123" required>
+        </div>
+        
+        <button type="submit">Login</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:4000';
+        
+        function showResult(message, isSuccess = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                showResult('Mencoba login...', false);
+                
+                const response = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Login failed:', errorText);
+                    showResult(`Login gagal: ${response.status} - ${errorText}`, false);
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (data.token && data.user) {
+                    localStorage.setItem('auth_token', data.token);
+                    showResult(`✅ Login berhasil!<br>
+                        User: ${data.user.nama}<br>
+                        Email: ${data.user.email}<br>
+                        Role: ${data.user.role}<br>
+                        Token: ${data.token.substring(0, 50)}...<br><br>
+                        <a href="dashboard-pembeli.html" style="color: #007bff;">Buka Dashboard Pembeli</a>`, true);
+                } else {
+                    showResult('Login berhasil tapi data tidak lengkap', false);
+                }
+                
+            } catch (error) {
+                console.error('Network error:', error);
+                showResult(`Kesalahan jaringan: ${error.message}<br>
+                    Pastikan backend server berjalan di ${API_BASE}`, false);
+            }
+        });
+        
+        // Check if already logged in
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                showResult(`Sudah login sebelumnya.<br>
+                    Token: ${token.substring(0, 50)}...<br><br>
+                    <a href="dashboard-pembeli.html" style="color: #007bff;">Buka Dashboard Pembeli</a><br>
+                    <button onclick="localStorage.clear(); location.reload();" style="margin-top: 10px; padding: 5px 10px;">Logout</button>`, true);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Pembeli - Lautan Kita</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #d6d9ff;
+            color: #07304A;
+        }
+
+        .header {
+            background: #0077B6;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #0077B6;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .welcome-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .welcome-card h2 {
+            color: #0077B6;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-card .icon {
+            font-size: 32px;
+            color: #0077B6;
+            margin-bottom: 12px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #07304A;
+        }
+
+        .stat-card .label {
+            color: #64748B;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #64748B;
+        }
+
+        .tab.active {
+            color: #0077B6;
+            border-bottom-color: #0077B6;
+        }
+
+        .tab:hover {
+            color: #0077B6;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 16px;
+        }
+
+        .order-item {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px 0;
+        }
+
+        .order-item:last-child {
+            border-bottom: none;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .order-id {
+            font-weight: 700;
+            color: #0077B6;
+        }
+
+        .order-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .status-menunggu {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-dikemas,
+        .status-diproses {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .status-dikirim {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-selesai {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-dibatalkan {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .order-details {
+            color: #64748B;
+            font-size: 14px;
+        }
+
+        .order-total {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0077B6;
+            margin-top: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748B;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .action-btn.view {
+            background: #0077B6;
+            color: white;
+        }
+
+        .action-btn.cancel {
+            background: #EF4444;
+            color: white;
+            margin-left: 8px;
+        }
+
+        .action-btn.confirm {
+            background: #10B981;
+            color: white;
+            margin-left: 8px;
+        }
+
+        .debug-info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .debug-success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .debug-error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-shopping-bag"></i> Dashboard Pembeli</h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="window.location.href='home_final.html'">
+                    <i class="fas fa-home"></i> Beranda
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='keranjang.html'">
+                    <i class="fas fa-shopping-cart"></i> Keranjang
+                </button>
+                <button class="btn btn-primary" onclick="window.location.href='views/profil.html'">
+                    <i class="fas fa-user"></i> Profil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Debug Info -->
+        <div id="debugInfo" class="debug-info">
+            <strong>Debug Info:</strong><br>
+            <span id="debugText">Initializing...</span>
+        </div>
+
+        <div class="welcome-card">
+            <h2 id="welcomeName">Selamat Datang!</h2>
+            <p style="color: #64748B;">Kelola pesanan dan pantau status pengiriman Anda di sini.</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-clock"></i></div>
+                <div class="value" id="statMenunggu">0</div>
+                <div class="label">Menunggu Pembayaran</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-box"></i></div>
+                <div class="value" id="statDiproses">0</div>
+                <div class="label">Sedang Diproses</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-truck"></i></div>
+                <div class="value" id="statDikirim">0</div>
+                <div class="label">Dalam Pengiriman</div>
+            </div>
+            <div class="stat-card">
+                <div class="icon"><i class="fas fa-check-circle"></i></div>
+                <div class="value" id="statSelesai">0</div>
+                <div class="label">Pesanan Selesai</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('all')">Semua Pesanan</div>
+            <div class="tab" onclick="showTab('menunggu')">Menunggu</div>
+            <div class="tab" onclick="showTab('diproses')">Diproses</div>
+            <div class="tab" onclick="showTab('dikirim')">Dikirim</div>
+            <div class="tab" onclick="showTab('selesai')">Selesai</div>
+        </div>
+
+        <div class="card" id="ordersContainer">
+            <div class="empty-state">
+                <i class="fas fa-shopping-bag"></i>
+                <p>Memuat pesanan...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://localhost:4000';
+        let allOrders = [];
+        let currentFilter = 'all';
+
+        // Debug function
+        function updateDebug(message, type = 'info') {
+            const debugDiv = document.getElementById('debugInfo');
+            const debugText = document.getElementById('debugText');
+            debugText.innerHTML = message;
+            
+            debugDiv.className = 'debug-info';
+            if (type === 'success') debugDiv.className += ' debug-success';
+            if (type === 'error') debugDiv.className += ' debug-error';
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // API helper functions
+        function getAuthToken() {
+            return localStorage.getItem('auth_token');
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            const token = getAuthToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers
+            });
+
+            return response;
+        }
+
+        // Authentication check
+        async function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                updateDebug('❌ No auth token found. Redirecting to login...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return null;
+            }
+
+            try {
+                updateDebug('🔍 Checking authentication...');
+                const response = await apiCall('/auth/me');
+                
+                if (!response.ok) {
+                    updateDebug(`❌ Auth failed: ${response.status}. Redirecting to login...`, 'error');
+                    localStorage.removeItem('auth_token');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    return null;
+                }
+
+                const user = await response.json();
+                updateDebug(`✅ Authenticated as: ${user.nama} (${user.role})`, 'success');
+                
+                if (user.role !== 'pembeli') {
+                    updateDebug('❌ Access denied. User is not a pembeli.', 'error');
+                    setTimeout(() => {
+                        window.location.href = 'home_final.html';
+                    }, 2000);
+                    return null;
+                }
+
+                return user;
+            } catch (error) {
+                updateDebug(`❌ Auth check failed: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // Load orders
+        async function loadOrders() {
+            try {
+                updateDebug('📦 Loading orders...');
+                const response = await apiCall('/orders/my-orders');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API Error ${response.status}: ${errorText}`);
+                }
+                
+                allOrders = await response.json();
+                updateDebug(`✅ Loaded ${allOrders.length} orders successfully!`, 'success');
+                
+                updateStats();
+                renderOrders();
+                
+            } catch (error) {
+                updateDebug(`❌ Failed to load orders: ${error.message}`, 'error');
+                document.getElementById('ordersContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Gagal memuat pesanan: ${error.message}</p>
+                        <p style="font-size: 12px; margin-top: 8px;">Periksa console browser untuk detail error.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            const stats = {
+                pending: 0,
+                menunggu: 0,
+                dikemas: 0,
+                diproses: 0,
+                dikirim: 0,
+                selesai: 0,
+                dibatalkan: 0,
+                empty: 0
+            };
+
+            allOrders.forEach(order => {
+                const status = order.status || order.status_pesanan || '';
+                if (status === '') {
+                    stats.empty++;
+                    stats.menunggu++;
+                } else if (stats.hasOwnProperty(status)) {
+                    stats[status]++;
+                }
+            });
+
+            document.getElementById('statMenunggu').textContent = stats.pending + stats.menunggu;
+            document.getElementById('statDiproses').textContent = stats.dikemas + stats.diproses;
+            document.getElementById('statDikirim').textContent = stats.dikirim;
+            document.getElementById('statSelesai').textContent = stats.selesai;
+        }
+
+        // Format status
+        function formatStatus(status) {
+            const statusMap = {
+                'pending': 'Pembayaran Dikonfirmasi',
+                'menunggu': 'Menunggu Pembayaran',
+                'dikemas': 'Sedang Dikemas',
+                'diproses': 'Sedang Diproses',
+                'dikirim': 'Dalam Pengiriman',
+                'selesai': 'Selesai',
+                'dibatalkan': 'Dibatalkan',
+                '': 'Menunggu Pembayaran'
+            };
+            return statusMap[status] || 'Status Tidak Dikenal';
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Show tab
+        function showTab(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            renderOrders();
+        }
+
+        // Render orders
+        function renderOrders() {
+            const container = document.getElementById('ordersContainer');
+            let orders = allOrders;
+
+            if (currentFilter !== 'all') {
+                const statusMap = {
+                    'menunggu': ['pending', 'menunggu', ''],
+                    'diproses': ['dikemas', 'diproses'],
+                    'dikirim': ['dikirim'],
+                    'selesai': ['selesai']
+                };
+                
+                const targetStatuses = statusMap[currentFilter] || [currentFilter];
+                orders = allOrders.filter(o => {
+                    const status = o.status || o.status_pesanan || '';
+                    return targetStatuses.includes(status);
+                });
+            }
+
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-bag"></i>
+                        <p>Tidak ada pesanan ${currentFilter !== 'all' ? 'dengan status ini' : ''}.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => {
+                const status = order.status || order.status_pesanan || '';
+                const normalizedStatus = status === '' ? 'menunggu' : status;
+                const itemsText = order.items ? order.items.map(item => `${item.nama_produk} (${item.jumlah}x)`).join(', ') : '';
+                
+                return `
+                    <div class="order-item">
+                        <div class="order-header">
+                            <div>
+                                <span class="order-id">Pesanan #${order.pesanan_id}</span>
+                                <span class="order-status status-${normalizedStatus}">${formatStatus(status)}</span>
+                            </div>
+                            <div>
+                                <button class="action-btn view" onclick="viewOrderDetail(${order.pesanan_id})">
+                                    <i class="fas fa-eye"></i> Lihat Detail
+                                </button>
+                            </div>
+                        </div>
+                        <div class="order-details">
+                            <div><i class="fas fa-calendar"></i> ${formatDate(order.tanggal_pesanan || order.created_at)}</div>
+                            ${itemsText ? `<div><i class="fas fa-box"></i> ${itemsText}</div>` : ''}
+                            ${order.kurir_nama ? `<div><i class="fas fa-user"></i> Kurir: ${order.kurir_nama}</div>` : ''}
+                            ${order.lokasi_terakhir ? `<div><i class="fas fa-map-marker-alt"></i> ${order.lokasi_terakhir}</div>` : ''}
+                        </div>
+                        <div class="order-total">Total: Rp ${Number(order.total_harga).toLocaleString('id-ID')}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // View order detail
+        function viewOrderDetail(orderId) {
+            window.location.href = `rincian-pesanan.html?id=${orderId}`;
+        }
+
+        // Initialize
+        async function init() {
+            updateDebug('🚀 Initializing dashboard...');
+            
+            // Check authentication
+            const user = await checkAuth();
+            if (!user) return;
+            
+            // Update welcome message
+            document.getElementById('welcomeName').textContent = `Selamat Datang, ${user.nama}!`;
+            
+            // Load orders
+            await loadOrders();
+        }
+
+        // Start when page loads
+        document.addEventListener('DOMContentLoaded', init);
+
+        // Auto refresh every 30 seconds
+        setInterval(async () => {
+            if (allOrders.length > 0) {
+                await loadOrders();
+            }
+        }, 30000);
+    </script>
+</body>
+
+</html>
