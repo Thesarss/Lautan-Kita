@@ -88,6 +88,12 @@ app.listen(port, () => {
         await conn2.query('ALTER TABLE produk ADD COLUMN satuan VARCHAR(20) DEFAULT "kg" AFTER harga');
         console.log('Added produk.satuan column');
       }
+      // Ensure deleted_at column exists for soft delete
+      const [deletedAtCol] = await conn2.query('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "produk" AND COLUMN_NAME = "deleted_at"');
+      if (!deletedAtCol.length) {
+        await conn2.query('ALTER TABLE produk ADD COLUMN deleted_at DATETIME NULL');
+        console.log('Added produk.deleted_at column');
+      }
       // Ensure role enum includes 'kurir'
       const [roleEnum] = await conn2.query("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'role'");
       if (roleEnum.length && !roleEnum[0].COLUMN_TYPE.includes('kurir')) {
@@ -131,7 +137,7 @@ app.listen(port, () => {
         await conn2.query("ALTER TABLE pesanan MODIFY COLUMN status_pesanan ENUM('pending','dikemas','dikirim','selesai','dibatalkan') DEFAULT 'pending'");
         console.log('Updated pesanan.status_pesanan enum');
       }
-      
+
       // Ensure seller rating table exists
       const [ratingTable] = await conn2.query("SHOW TABLES LIKE 'rating_penjual'");
       if (!ratingTable.length) {
@@ -159,7 +165,7 @@ app.listen(port, () => {
         `);
         console.log('Created rating_penjual table');
       }
-      
+
       // Ensure avg_rating and total_ratings columns exist in user table
       const [ratingCols] = await conn2.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME IN ('avg_rating','total_ratings')");
       const existingRatingCols = ratingCols.map(c => c.COLUMN_NAME);
@@ -171,6 +177,23 @@ app.listen(port, () => {
         await conn2.query("ALTER TABLE user ADD COLUMN total_ratings INT(11) DEFAULT 0");
         console.log('Added user.total_ratings column');
       }
+
+      // Ensure balasan_admin columns exist in ulasan table
+      const [ulasanCols] = await conn2.query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ulasan' AND COLUMN_NAME IN ('balasan_admin','tanggal_balasan','admin_id')");
+      const existingUlasanCols = ulasanCols.map(c => c.COLUMN_NAME);
+      if (!existingUlasanCols.includes('balasan_admin')) {
+        await conn2.query("ALTER TABLE ulasan ADD COLUMN balasan_admin TEXT NULL");
+        console.log('Added ulasan.balasan_admin column');
+      }
+      if (!existingUlasanCols.includes('tanggal_balasan')) {
+        await conn2.query("ALTER TABLE ulasan ADD COLUMN tanggal_balasan DATETIME NULL");
+        console.log('Added ulasan.tanggal_balasan column');
+      }
+      if (!existingUlasanCols.includes('admin_id')) {
+        await conn2.query("ALTER TABLE ulasan ADD COLUMN admin_id INT NULL");
+        console.log('Added ulasan.admin_id column');
+      }
+
     } finally { conn2.release(); }
   } catch (e) {
     console.error('Database connection failed:', e && e.code || e && e.message);

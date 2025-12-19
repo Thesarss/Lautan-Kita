@@ -185,11 +185,32 @@ router.get('/admin/reviews', requireAuth, requireRole(['admin']), [
   const { status, rating } = req.query;
   const conn = await pool.getConnection();
   try {
-    let sql = `SELECT u.ulasan_id, u.produk_id, p.nama_produk, u.pembeli_id, 
-               usr.nama AS pembeli_nama, u.rating, u.komentar, u.status, u.dibuat_pada AS tanggal_ulasan
+    // Check if balasan columns exist
+    const [cols] = await conn.query(`
+      SELECT COLUMN_NAME FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ulasan' 
+      AND COLUMN_NAME IN ('balasan_admin', 'tanggal_balasan', 'admin_id')
+    `);
+    const existingCols = cols.map(c => c.COLUMN_NAME);
+    const hasBalasan = existingCols.includes('balasan_admin');
+
+    let sql;
+    if (hasBalasan) {
+      sql = `SELECT u.ulasan_id, u.produk_id, p.nama_produk, u.pembeli_id, 
+               usr.nama AS pembeli_nama, u.rating, u.komentar, u.status, u.dibuat_pada AS tanggal_ulasan,
+               u.balasan_admin, u.tanggal_balasan, u.admin_id, adm.nama AS admin_nama
+               FROM ulasan u
+               JOIN produk p ON p.produk_id = u.produk_id
+               JOIN user usr ON usr.user_id = u.pembeli_id
+               LEFT JOIN user adm ON adm.user_id = u.admin_id`;
+    } else {
+      sql = `SELECT u.ulasan_id, u.produk_id, p.nama_produk, u.pembeli_id, 
+               usr.nama AS pembeli_nama, u.rating, u.komentar, u.status, u.dibuat_pada AS tanggal_ulasan,
+               NULL as balasan_admin, NULL as tanggal_balasan, NULL as admin_id, NULL as admin_nama
                FROM ulasan u
                JOIN produk p ON p.produk_id = u.produk_id
                JOIN user usr ON usr.user_id = u.pembeli_id`;
+    }
     const params = [];
     const conds = [];
     if (status) { conds.push('u.status=?'); params.push(status); }
@@ -198,6 +219,9 @@ router.get('/admin/reviews', requireAuth, requireRole(['admin']), [
     sql += ' ORDER BY u.dibuat_pada DESC';
     const [rows] = await conn.query(sql, params);
     res.json(rows);
+  } catch (e) {
+    console.error('Error loading reviews:', e);
+    res.status(500).json({ error: 'internal_error', message: e.message });
   } finally {
     conn.release();
   }
@@ -217,6 +241,48 @@ router.patch('/admin/reviews/:id/status', requireAuth, requireRole(['admin']), [
     await conn.query('UPDATE ulasan SET status=? WHERE ulasan_id=?', [status, req.params.id]);
     await conn.query('INSERT INTO audit_log (actor_user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?)', [req.user.id, 'review_status_update', 'ulasan', req.params.id, JSON.stringify({ status })]);
     res.json({ ok: true });
+  } finally {
+    conn.release();
+  }
+});
+
+// Admin: Reply to review
+router.patch('/admin/reviews/:id/reply', requireAuth, requireRole(['admin']), [
+  param('id').isInt({ min: 1 }),
+  body('balasan').isString().trim().isLength({ min: 1, max: 1000 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const { balasan } = req.body;
+  const conn = await pool.getConnection();
+  try {
+    const [r] = await conn.query('SELECT ulasan_id FROM ulasan WHERE ulasan_id=?', [req.params.id]);
+    if (!r.length) return res.status(404).json({ error: 'not_found' });
+
+    // Ensure balasan columns exist
+    const [cols] = await conn.query(`
+      SELECT COLUMN_NAME FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ulasan' 
+      AND COLUMN_NAME IN ('balasan_admin', 'tanggal_balasan', 'admin_id')
+    `);
+    const existingCols = cols.map(c => c.COLUMN_NAME);
+
+    if (!existingCols.includes('balasan_admin')) {
+      await conn.query("ALTER TABLE ulasan ADD COLUMN balasan_admin TEXT NULL");
+    }
+    if (!existingCols.includes('tanggal_balasan')) {
+      await conn.query("ALTER TABLE ulasan ADD COLUMN tanggal_balasan DATETIME NULL");
+    }
+    if (!existingCols.includes('admin_id')) {
+      await conn.query("ALTER TABLE ulasan ADD COLUMN admin_id INT NULL");
+    }
+
+    await conn.query('UPDATE ulasan SET balasan_admin=?, tanggal_balasan=NOW(), admin_id=? WHERE ulasan_id=?', [balasan, req.user.id, req.params.id]);
+    await conn.query('INSERT INTO audit_log (actor_user_id,action,entity_type,entity_id,metadata) VALUES (?,?,?,?,?)', [req.user.id, 'review_reply', 'ulasan', req.params.id, JSON.stringify({ balasan })]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Error replying to review:', e);
+    res.status(500).json({ error: 'internal_error', message: e.message });
   } finally {
     conn.release();
   }
@@ -299,7 +365,7 @@ router.get('/admin/stats', requireAuth, requireRole(['admin']), async (req, res)
         SUM(CASE WHEN verified = 1 THEN 1 ELSE 0 END) as verified_users
       FROM user
     `);
-    
+
     const [orderStats] = await conn.query(`
       SELECT 
         COUNT(*) as total_orders,
@@ -308,24 +374,24 @@ router.get('/admin/stats', requireAuth, requireRole(['admin']), async (req, res)
         SUM(CASE WHEN status_pesanan = 'selesai' THEN total_harga ELSE 0 END) as total_revenue
       FROM pesanan
     `);
-    
+
     const [productStats] = await conn.query(`
       SELECT 
         COUNT(*) as total_products,
         SUM(CASE WHEN status = 'aktif' THEN 1 ELSE 0 END) as active_products
       FROM produk
     `);
-    
+
     const [paymentStats] = await conn.query(`
       SELECT 
         COUNT(*) as total_payments,
         SUM(CASE WHEN status_pembayaran = 'sudah_dibayar' THEN 1 ELSE 0 END) as confirmed_payments
       FROM pembayaran
     `);
-    
+
     res.json({
       users: userStats[0],
-      orders: orderStats[0], 
+      orders: orderStats[0],
       products: productStats[0],
       payments: paymentStats[0]
     });

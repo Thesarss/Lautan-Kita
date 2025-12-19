@@ -26,26 +26,32 @@ router.get('/products', [
 });
 
 router.post('/penjual/produk', requireAuth, requireRole(['penjual']), [
-  body('nama_produk').isString().isLength({ min: 2 }).trim(),
-  body('kategori').optional().isString().trim(),
-  body('deskripsi').optional().isString().isLength({ max: 2000 }).trim(),
-  body('harga').isFloat({ gt: 0 }),
-  body('satuan').optional().isString().trim(),
-  body('stok').optional().isInt({ min: 0 }),
-  body('status').optional().isIn(['aktif', 'nonaktif']),
+  body('nama_produk').isString().isLength({ min: 2 }).trim().withMessage('Nama produk minimal 2 karakter'),
+  body('kategori').optional({ nullable: true }).isString().trim(),
+  body('deskripsi').optional({ nullable: true }).isString().isLength({ max: 2000 }).trim(),
+  body('harga').isFloat({ gt: 0 }).withMessage('Harga harus lebih dari 0'),
+  body('satuan').optional({ nullable: true }).isString().trim(),
+  body('stok').optional({ nullable: true }).isInt({ min: 0 }).withMessage('Stok tidak boleh negatif'),
+  body('status').optional({ nullable: true }).isIn(['aktif', 'nonaktif']),
   body('kategori_id').optional({ nullable: true }).isInt({ min: 1 }),
-  body('image').optional().isString().isLength({ min: 30 })
+  body('image').optional({ nullable: true }).isString()
 ], async (req, res) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  if (!errors.isEmpty()) {
+    console.log('Validation errors:', errors.array());
+    return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  }
+  console.log('Adding product, body:', { ...req.body, image: req.body.image ? '[BASE64_IMAGE]' : null });
   const { nama_produk, kategori, deskripsi, harga, satuan, stok, status, kategori_id, image } = req.body;
   const conn = await pool.getConnection();
   try {
+    console.log('Inserting product for user:', req.user.id);
     const [ins] = await conn.query(
       'INSERT INTO produk (penjual_id,kategori_id,nama_produk,kategori,deskripsi,harga,satuan,stok,status) VALUES (?,?,?,?,?,?,?,?,?)',
       [req.user.id, kategori_id || null, nama_produk, kategori || null, deskripsi || null, harga, satuan || 'kg', stok || 0, status || 'aktif']
     );
     const produkId = ins.insertId;
+    console.log('Product inserted with ID:', produkId);
     let photoUrl = null;
     if (image && typeof image === 'string' && image.length > 30) {
       let m = (image.match(/^data:(image\/([a-z0-9.+-]+));base64,(.+)$/i) || []);
@@ -75,7 +81,11 @@ router.post('/penjual/produk', requireAuth, requireRole(['penjual']), [
     if (photoUrl) {
       await conn.query('UPDATE produk SET photo_url=? WHERE produk_id=?', [photoUrl, produkId]);
     }
+    console.log('Product created successfully:', produkId);
     res.status(201).json({ produk_id: produkId, photo_url: photoUrl });
+  } catch (e) {
+    console.error('Error creating product:', e);
+    res.status(500).json({ error: 'internal_error', message: e.message });
   } finally {
     conn.release();
   }
@@ -100,7 +110,7 @@ router.get('/penjual/produk/:id/orders', requireAuth, requireRole(['penjual']), 
     // Check if product belongs to seller
     const [own] = await conn.query('SELECT produk_id FROM produk WHERE produk_id=? AND penjual_id=? LIMIT 1', [req.params.id, req.user.id]);
     if (!own.length) return res.status(404).json({ error: 'not_found' });
-    
+
     // Get all orders containing this product
     const [orders] = await conn.query(`
       SELECT p.pesanan_id, p.status_pesanan, p.created_at, pi.jumlah
@@ -109,14 +119,14 @@ router.get('/penjual/produk/:id/orders', requireAuth, requireRole(['penjual']), 
       WHERE pi.produk_id = ?
       ORDER BY p.created_at DESC
     `, [req.params.id]);
-    
+
     // Count pending orders
     const [pendingCount] = await conn.query(`
       SELECT COUNT(*) as count FROM pesanan_item pi 
       JOIN pesanan p ON p.pesanan_id = pi.pesanan_id 
       WHERE pi.produk_id = ? AND p.status_pesanan IN ('pending', 'menunggu', 'diproses', 'dikemas', 'dikirim')
     `, [req.params.id]);
-    
+
     res.json({
       product_id: req.params.id,
       total_orders: orders.length,
@@ -184,7 +194,7 @@ router.patch('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
     // Build dynamic update query
     const updateFields = [];
     const updateValues = [];
-    
+
     if (nama_produk !== undefined) {
       updateFields.push('nama_produk = ?');
       updateValues.push(nama_produk);
@@ -221,7 +231,7 @@ router.patch('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
       updateFields.push('photo_url = ?');
       updateValues.push(photoUrl);
     }
-    
+
     if (updateFields.length > 0) {
       updateValues.push(req.params.id, req.user.id);
       await conn.query(
@@ -244,26 +254,26 @@ router.delete('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
     console.log('Validation error in delete product:', errors.array());
     return res.status(422).json({ error: 'validation_error', details: errors.array() });
   }
-  
+
   console.log(`Delete product request: productId=${req.params.id}, userId=${req.user.id}, userRole=${req.user.role}`);
-  
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    
+
     // Check if product exists and belongs to seller, get status and photo_url in one query
     const [own] = await conn.query('SELECT produk_id, photo_url, status FROM produk WHERE produk_id=? AND penjual_id=? AND deleted_at IS NULL LIMIT 1', [req.params.id, req.user.id]);
     console.log(`Product ownership check result:`, own);
-    
+
     if (!own.length) {
       console.log(`Product not found or doesn't belong to seller: productId=${req.params.id}, sellerId=${req.user.id}`);
       await conn.rollback();
       return res.status(404).json({ error: 'not_found', message: 'Produk tidak ditemukan atau bukan milik Anda' });
     }
-    
+
     const productStatus = own[0].status;
     console.log(`Product status: ${productStatus}`);
-    
+
     // Only check pending orders for active products
     // Inactive products can be deleted regardless of order history
     if (productStatus === 'aktif') {
@@ -273,14 +283,14 @@ router.delete('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
         JOIN pesanan p ON p.pesanan_id = pi.pesanan_id 
         WHERE pi.produk_id = ? AND p.status_pesanan IN ('pending', 'menunggu', 'diproses', 'dikemas', 'dikirim')
       `, [req.params.id]);
-      
+
       console.log(`Pending orders count: ${pendingOrders[0].count}`);
-      
+
       if (pendingOrders[0].count > 0) {
         console.log(`Cannot delete active product with pending orders: ${pendingOrders[0].count}`);
         await conn.rollback();
-        return res.status(409).json({ 
-          error: 'product_in_pending_orders', 
+        return res.status(409).json({
+          error: 'product_in_pending_orders',
           message: `Tidak dapat menghapus produk aktif karena masih ada ${pendingOrders[0].count} pesanan aktif. Ubah status produk menjadi nonaktif terlebih dahulu atau tunggu hingga semua pesanan selesai.`,
           pending_count: pendingOrders[0].count
         });
@@ -288,35 +298,35 @@ router.delete('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
     } else {
       console.log('Product is inactive, skipping pending orders check');
     }
-    
+
     // Remove related cart items (they reference the product)
     console.log('Removing related cart items...');
     const [deletedCartItems] = await conn.query('DELETE FROM keranjang_item WHERE produk_id = ?', [req.params.id]);
     console.log(`Removed ${deletedCartItems.affectedRows} cart items`);
-    
+
     // Soft delete the product (set deleted_at timestamp)
     console.log('Soft deleting product...');
     const [deleteResult] = await conn.query('UPDATE produk SET deleted_at = NOW() WHERE produk_id=? AND penjual_id=? AND deleted_at IS NULL', [req.params.id, req.user.id]);
     console.log(`Soft delete result: ${deleteResult.affectedRows} rows affected`);
-    
+
     if (deleteResult.affectedRows === 0) {
       console.log('No rows were updated - product may already be deleted');
       await conn.rollback();
       return res.status(500).json({ error: 'delete_failed', message: 'Gagal menghapus produk dari database' });
     }
-    
+
     // Note: We keep the image file for potential recovery
     // Image cleanup can be done separately by admin if needed
     console.log('Product image preserved for potential recovery');
-    
+
     await conn.commit();
     console.log(`Product ${req.params.id} deleted successfully`);
     res.json({ ok: true, message: 'Produk berhasil dihapus' });
-    
+
   } catch (e) {
     try { await conn.rollback(); } catch { }
     console.error('Error deleting product:', e);
-    
+
     // Provide more specific error messages
     let errorMessage = 'Terjadi kesalahan saat menghapus produk';
     if (e.code === 'ER_ROW_IS_REFERENCED_2') {
@@ -324,12 +334,167 @@ router.delete('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
     } else if (e.code === 'ER_NO_SUCH_TABLE') {
       errorMessage = 'Tabel database tidak ditemukan';
     }
-    
-    res.status(500).json({ 
-      error: 'internal_error', 
+
+    res.status(500).json({
+      error: 'internal_error',
       message: errorMessage,
       debug: process.env.NODE_ENV === 'development' ? e.message : undefined
     });
+  } finally {
+    conn.release();
+  }
+});
+
+// Penjual: Get sales report
+router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    // Get sales summary per product
+    const [productSales] = await conn.query(`
+      SELECT 
+        p.produk_id, p.nama_produk, p.harga, p.stok, p.photo_url,
+        COALESCE(SUM(CASE WHEN ps.status_pesanan = 'selesai' THEN pi.jumlah ELSE 0 END), 0) as total_terjual,
+        COALESCE(SUM(CASE WHEN ps.status_pesanan = 'selesai' THEN pi.subtotal ELSE 0 END), 0) as total_pendapatan,
+        COUNT(DISTINCT CASE WHEN ps.status_pesanan = 'selesai' THEN ps.pesanan_id END) as jumlah_transaksi,
+        COALESCE(AVG(u.rating), 0) as avg_rating,
+        COUNT(u.ulasan_id) as total_ulasan
+      FROM produk p
+      LEFT JOIN pesanan_item pi ON pi.produk_id = p.produk_id
+      LEFT JOIN pesanan ps ON ps.pesanan_id = pi.pesanan_id
+      LEFT JOIN ulasan u ON u.produk_id = p.produk_id AND u.status = 'aktif'
+      WHERE p.penjual_id = ? AND p.deleted_at IS NULL
+      GROUP BY p.produk_id
+      ORDER BY total_pendapatan DESC
+    `, [req.user.id]);
+
+    // Get overall stats - sum from productSales for consistency
+    const totalPendapatan = productSales.reduce((sum, p) => sum + Number(p.total_pendapatan || 0), 0);
+    const totalTerjual = productSales.reduce((sum, p) => sum + Number(p.total_terjual || 0), 0);
+    const totalTransaksi = productSales.reduce((sum, p) => sum + Number(p.jumlah_transaksi || 0), 0);
+
+    const overallStats = [{
+      total_pendapatan: totalPendapatan,
+      total_terjual: totalTerjual,
+      total_transaksi: totalTransaksi
+    }];
+
+    // Get monthly sales (last 6 months)
+    const [monthlySales] = await conn.query(`
+      SELECT 
+        DATE_FORMAT(ps.tanggal_selesai, '%Y-%m') as bulan,
+        SUM(pi.subtotal) as pendapatan,
+        SUM(pi.jumlah) as jumlah_terjual
+      FROM pesanan_item pi
+      JOIN pesanan ps ON ps.pesanan_id = pi.pesanan_id
+      JOIN produk p ON p.produk_id = pi.produk_id
+      WHERE p.penjual_id = ? 
+        AND ps.status_pesanan = 'selesai'
+        AND ps.tanggal_selesai >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+      GROUP BY DATE_FORMAT(ps.tanggal_selesai, '%Y-%m')
+      ORDER BY bulan DESC
+    `, [req.user.id]);
+
+    // Get average rating for seller
+    const [sellerRating] = await conn.query(`
+      SELECT 
+        COALESCE(AVG(u.rating), 0) as avg_rating,
+        COUNT(u.ulasan_id) as total_ulasan
+      FROM ulasan u
+      JOIN produk p ON p.produk_id = u.produk_id
+      WHERE p.penjual_id = ? AND u.status = 'aktif'
+    `, [req.user.id]);
+
+    res.json({
+      products: productSales,
+      overall: overallStats[0],
+      monthly: monthlySales,
+      rating: sellerRating[0]
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// Get product reviews for seller
+router.get('/penjual/ulasan', requireAuth, requireRole(['penjual']), async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    const [reviews] = await conn.query(`
+      SELECT 
+        u.ulasan_id, u.rating, u.komentar, u.dibuat_pada,
+        p.produk_id, p.nama_produk, p.photo_url,
+        usr.nama as pembeli_nama
+      FROM ulasan u
+      JOIN produk p ON p.produk_id = u.produk_id
+      JOIN user usr ON usr.user_id = u.pembeli_id
+      WHERE p.penjual_id = ? AND u.status = 'aktif'
+      ORDER BY u.dibuat_pada DESC
+    `, [req.user.id]);
+    res.json(reviews);
+  } finally {
+    conn.release();
+  }
+});
+
+// Public: Get reviews for a product
+router.get('/products/:id/reviews', [
+  param('id').isInt({ min: 1 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  const conn = await pool.getConnection();
+  try {
+    // Check if balasan columns exist
+    const [cols] = await conn.query(`
+      SELECT COLUMN_NAME FROM information_schema.COLUMNS 
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ulasan' 
+      AND COLUMN_NAME IN ('balasan_admin', 'tanggal_balasan', 'admin_id')
+    `);
+    const existingCols = cols.map(c => c.COLUMN_NAME);
+    const hasBalasan = existingCols.includes('balasan_admin');
+
+    let reviews;
+    if (hasBalasan) {
+      [reviews] = await conn.query(`
+        SELECT 
+          u.ulasan_id, u.rating, u.komentar, u.dibuat_pada as tanggal,
+          u.balasan_admin, u.tanggal_balasan,
+          usr.nama as pembeli_nama, usr.avatar_url as pembeli_avatar,
+          adm.nama as admin_nama
+        FROM ulasan u
+        JOIN user usr ON usr.user_id = u.pembeli_id
+        LEFT JOIN user adm ON adm.user_id = u.admin_id
+        WHERE u.produk_id = ? AND u.status = 'aktif'
+        ORDER BY u.dibuat_pada DESC
+      `, [req.params.id]);
+    } else {
+      [reviews] = await conn.query(`
+        SELECT 
+          u.ulasan_id, u.rating, u.komentar, u.dibuat_pada as tanggal,
+          NULL as balasan_admin, NULL as tanggal_balasan,
+          usr.nama as pembeli_nama, usr.avatar_url as pembeli_avatar,
+          NULL as admin_nama
+        FROM ulasan u
+        JOIN user usr ON usr.user_id = u.pembeli_id
+        WHERE u.produk_id = ? AND u.status = 'aktif'
+        ORDER BY u.dibuat_pada DESC
+      `, [req.params.id]);
+    }
+
+    // Get average rating
+    const [avgRating] = await conn.query(`
+      SELECT AVG(rating) as avg_rating, COUNT(*) as total_reviews
+      FROM ulasan WHERE produk_id = ? AND status = 'aktif'
+    `, [req.params.id]);
+
+    res.json({
+      reviews,
+      avg_rating: avgRating[0].avg_rating || 0,
+      total_reviews: avgRating[0].total_reviews || 0
+    });
+  } catch (e) {
+    console.error('Error loading reviews:', e);
+    res.status(500).json({ error: 'internal_error', message: e.message });
   } finally {
     conn.release();
   }

@@ -100,7 +100,7 @@ router.get('/orders/my-orders', requireAuth, requireRole(['pembeli']), async (re
         WHERE i.pesanan_id = ?
       `, [order.pesanan_id]);
       order.items = items;
-      
+
       // Ensure backward compatibility
       order.status_pesanan = order.status;
       order.created_at = order.tanggal_pesanan;
@@ -206,9 +206,6 @@ router.patch('/admin/orders/:id/status', requireAuth, requireRole(['admin']), [
   }
 });
 
-module.exports = router;
-
-
 // Penjual: Update order to "dikemas"
 router.patch('/orders/:id/pack', requireAuth, requireRole(['penjual']), [
   param('id').isInt({ min: 1 })
@@ -230,11 +227,12 @@ router.patch('/orders/:id/pack', requireAuth, requireRole(['penjual']), [
       return res.status(403).json({ error: 'forbidden' });
     }
 
-    // Check current status
+    // Check current status - allow packing for 'menunggu', 'pending', or empty status
     const [orderCheck] = await conn.query('SELECT status_pesanan FROM pesanan WHERE pesanan_id = ?', [req.params.id]);
-    if (!orderCheck.length || orderCheck[0].status_pesanan !== 'pending') {
+    const currentStatus = orderCheck[0]?.status_pesanan || '';
+    if (!orderCheck.length || !['menunggu', 'pending', ''].includes(currentStatus)) {
       await conn.rollback();
-      return res.status(409).json({ error: 'invalid_status' });
+      return res.status(409).json({ error: 'invalid_status', message: 'Pesanan tidak dalam status yang bisa dikemas' });
     }
 
     // Update to dikemas without assigning kurir yet (kurir will self-assign when picking up)
@@ -263,27 +261,27 @@ router.patch('/orders/:id/ship', requireAuth, requireRole(['kurir']), [
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    
+
     // Check if order is available for pickup
     const [orderCheck] = await conn.query(`
       SELECT pesanan_id, kurir_id, status_pesanan 
       FROM pesanan 
       WHERE pesanan_id = ? AND status_pesanan = 'dikemas'
     `, [req.params.id]);
-    
+
     if (!orderCheck.length) {
       await conn.rollback();
       return res.status(404).json({ error: 'order_not_found_or_invalid_status' });
     }
-    
+
     const order = orderCheck[0];
-    
+
     // If already assigned to another kurir, reject
     if (order.kurir_id && order.kurir_id !== req.user.id) {
       await conn.rollback();
       return res.status(409).json({ error: 'already_assigned_to_another_kurir' });
     }
-    
+
     // Assign kurir and update status
     await conn.query(`
       UPDATE pesanan 
@@ -449,6 +447,104 @@ router.patch('/kurir/orders/:id/location', requireAuth, requireRole(['kurir']), 
   }
 });
 
+// Pembeli: Submit rating/review for a product
+router.post('/orders/:orderId/review', requireAuth, requireRole(['pembeli']), [
+  param('orderId').isInt({ min: 1 }),
+  body('produk_id').isInt({ min: 1 }),
+  body('rating').isInt({ min: 1, max: 5 }),
+  body('komentar').optional().isString().trim().isLength({ max: 500 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+
+  const { produk_id, rating, komentar } = req.body;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    // Verify order belongs to user and is completed
+    const [orderCheck] = await conn.query(`
+      SELECT p.pesanan_id, p.status_pesanan, pi.pesanan_item_id
+      FROM pesanan p
+      JOIN pesanan_item pi ON pi.pesanan_id = p.pesanan_id
+      WHERE p.pesanan_id = ? AND p.pembeli_id = ? AND pi.produk_id = ?
+    `, [req.params.orderId, req.user.id, produk_id]);
+
+    if (!orderCheck.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'order_not_found' });
+    }
+
+    if (orderCheck[0].status_pesanan !== 'selesai') {
+      await conn.rollback();
+      return res.status(409).json({ error: 'order_not_completed', message: 'Hanya bisa memberi rating untuk pesanan yang sudah selesai' });
+    }
+
+    // Check if already reviewed
+    const [existingReview] = await conn.query(
+      'SELECT ulasan_id FROM ulasan WHERE pesanan_item_id = ? AND pembeli_id = ?',
+      [orderCheck[0].pesanan_item_id, req.user.id]
+    );
+
+    if (existingReview.length) {
+      await conn.rollback();
+      return res.status(409).json({ error: 'already_reviewed', message: 'Anda sudah memberikan ulasan untuk produk ini' });
+    }
+
+    // Insert review
+    const [result] = await conn.query(
+      'INSERT INTO ulasan (produk_id, pembeli_id, pesanan_item_id, rating, komentar) VALUES (?, ?, ?, ?, ?)',
+      [produk_id, req.user.id, orderCheck[0].pesanan_item_id, rating, komentar || null]
+    );
+
+    await conn.commit();
+    res.status(201).json({ ok: true, ulasan_id: result.insertId });
+  } catch (e) {
+    try { await conn.rollback(); } catch { }
+    console.error('Error submitting review:', e);
+    res.status(500).json({ error: 'internal_error' });
+  } finally {
+    conn.release();
+  }
+});
+
+// Pembeli: Get reviews for an order
+router.get('/orders/:orderId/reviews', requireAuth, requireRole(['pembeli']), [
+  param('orderId').isInt({ min: 1 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+
+  const conn = await pool.getConnection();
+  try {
+    // Verify order belongs to user
+    const [orderCheck] = await conn.query(
+      'SELECT pesanan_id FROM pesanan WHERE pesanan_id = ? AND pembeli_id = ?',
+      [req.params.orderId, req.user.id]
+    );
+
+    if (!orderCheck.length) {
+      return res.status(404).json({ error: 'order_not_found' });
+    }
+
+    // Get items with review status
+    const [items] = await conn.query(`
+      SELECT 
+        pi.pesanan_item_id, pi.produk_id, pi.jumlah, pi.harga_saat_beli,
+        p.nama_produk, p.photo_url,
+        u.ulasan_id, u.rating, u.komentar, u.dibuat_pada as review_date
+      FROM pesanan_item pi
+      JOIN produk p ON p.produk_id = pi.produk_id
+      LEFT JOIN ulasan u ON u.pesanan_item_id = pi.pesanan_item_id AND u.pembeli_id = ?
+      WHERE pi.pesanan_id = ?
+    `, [req.user.id, req.params.orderId]);
+
+    res.json(items);
+  } finally {
+    conn.release();
+  }
+});
+
 // Kurir: Verifikasi pesanan sudah sampai
 router.patch('/kurir/orders/:id/delivered', requireAuth, requireRole(['kurir']), [
   param('id').isInt({ min: 1 }),
@@ -487,3 +583,6 @@ router.patch('/kurir/orders/:id/delivered', requireAuth, requireRole(['kurir']),
     conn.release();
   }
 });
+
+
+module.exports = router;

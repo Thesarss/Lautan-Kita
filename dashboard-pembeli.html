@@ -267,6 +267,119 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
         }
+
+        .action-btn.rating {
+            background: #F59E0B;
+            color: white;
+            margin-left: 8px;
+        }
+
+        .action-btn.rating:hover {
+            background: #D97706;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0077B6;
+            margin-bottom: 16px;
+        }
+
+        .rating-stars {
+            display: flex;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .rating-stars i {
+            font-size: 32px;
+            cursor: pointer;
+            color: #E5E7EB;
+            transition: color 0.2s;
+        }
+
+        .rating-stars i.active,
+        .rating-stars i:hover {
+            color: #F59E0B;
+        }
+
+        .review-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .product-review-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .product-review-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .review-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .review-badge.done {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .review-badge.pending {
+            background: #FEF3C7;
+            color: #92400E;
+        }
     </style>
     <script src="assets/js/api.js"></script>
 </head>
@@ -285,6 +398,17 @@
                 <button class="btn btn-primary" onclick="window.location.href='views/profil.html'">
                     <i class="fas fa-user"></i> Profil
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rating Modal -->
+    <div class="modal" id="ratingModal">
+        <div class="modal-content">
+            <div class="modal-title"><i class="fas fa-star"></i> Beri Rating & Ulasan</div>
+            <div id="ratingProductsContainer"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeRatingModal()">Tutup</button>
             </div>
         </div>
     </div>
@@ -420,7 +544,7 @@
             document.getElementById('statDiproses').textContent = stats.dikemas + stats.diproses;
             document.getElementById('statDikirim').textContent = stats.dikirim;
             document.getElementById('statSelesai').textContent = stats.selesai;
-            
+
             console.log('Stats updated:', {
                 menunggu: stats.pending + stats.menunggu,
                 diproses: stats.dikemas + stats.diproses,
@@ -448,7 +572,7 @@
                     'dikirim': ['dikirim'],
                     'selesai': ['selesai']
                 };
-                
+
                 const targetStatuses = statusMap[currentFilter] || [currentFilter];
                 orders = allOrders.filter(o => {
                     const status = o.status || o.status_pesanan || '';
@@ -470,7 +594,7 @@
                 const status = order.status || order.status_pesanan || '';
                 const normalizedStatus = status === '' ? 'menunggu' : status;  // Normalize empty status
                 const itemsText = order.items ? order.items.map(item => `${item.nama_produk} (${item.jumlah}x)`).join(', ') : '';
-                
+
                 return `
         <div class="order-item">
           <div class="order-header">
@@ -492,6 +616,11 @@
                   <i class="fas fa-shield-alt"></i> Konfirmasi Bayar
                 </button>
               ` : ''}
+              ${normalizedStatus === 'selesai' ? `
+                <button class="action-btn rating" onclick="openRatingModal(${order.pesanan_id})">
+                  <i class="fas fa-star"></i> Beri Rating
+                </button>
+              ` : ''}
             </div>
           </div>
           <div class="order-details">
@@ -503,7 +632,7 @@
         </div>
       `;
             }).join('');
-            
+
             console.log('Rendered', orders.length, 'orders');
         }
 
@@ -577,27 +706,27 @@
                     API.showModal({ title: 'Error', message: 'Gagal memuat data pembayaran.' });
                     return;
                 }
-                
+
                 const payments = await resp.json();
                 if (payments.length === 0) {
-                    API.showModal({ 
-                        title: 'Belum Ada Pembayaran', 
-                        message: 'Belum ada data pembayaran untuk pesanan ini. Silakan buat pembayaran terlebih dahulu.' 
+                    API.showModal({
+                        title: 'Belum Ada Pembayaran',
+                        message: 'Belum ada data pembayaran untuk pesanan ini. Silakan buat pembayaran terlebih dahulu.'
                     });
                     return;
                 }
-                
+
                 const payment = payments[0];
                 if (payment.status_pembayaran === 'sudah_dibayar') {
-                    API.showModal({ 
-                        title: 'Pembayaran Sudah Dikonfirmasi', 
-                        message: 'Pembayaran untuk pesanan ini sudah dikonfirmasi.' 
+                    API.showModal({
+                        title: 'Pembayaran Sudah Dikonfirmasi',
+                        message: 'Pembayaran untuk pesanan ini sudah dikonfirmasi.'
                     });
                 } else if (payment.status_pembayaran === 'belum_dibayar') {
                     // Get order details for payment authentication
                     const order = allOrders.find(o => o.pesanan_id === orderId);
                     const amount = order ? order.total_harga : 0;
-                    
+
                     API.showModal({
                         title: 'Konfirmasi Pembayaran',
                         message: `Metode pembayaran: ${payment.metode}\nTotal: Rp ${Number(amount).toLocaleString('id-ID')}\n\nApakah Anda sudah melakukan pembayaran dan siap untuk konfirmasi?`,
@@ -626,12 +755,12 @@
         }
 
         // Check if returning from payment authentication
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('payment_success') === 'true') {
                 // Remove the parameter from URL
                 window.history.replaceState({}, document.title, window.location.pathname);
-                
+
                 // Show success message
                 if (window.API && window.API.showModal) {
                     API.showModal({
@@ -640,7 +769,7 @@
                         actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
                     });
                 }
-                
+
                 // Refresh orders to show updated status
                 setTimeout(() => {
                     loadOrders();
@@ -656,6 +785,133 @@
                 console.log('Auto refresh failed:', e);
             }
         }, 30000);
+
+        // Rating functionality
+        let currentRatingOrderId = null;
+        let productRatings = {};
+
+        async function openRatingModal(orderId) {
+            currentRatingOrderId = orderId;
+            productRatings = {};
+
+            try {
+                const resp = await API.authFetch(`/orders/${orderId}/reviews`);
+                if (!resp.ok) throw new Error('Failed to load reviews');
+                const items = await resp.json();
+
+                renderRatingProducts(items);
+                document.getElementById('ratingModal').classList.add('active');
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Gagal memuat data produk.' });
+            }
+        }
+
+        function closeRatingModal() {
+            document.getElementById('ratingModal').classList.remove('active');
+            currentRatingOrderId = null;
+            productRatings = {};
+        }
+
+        function renderRatingProducts(items) {
+            const container = document.getElementById('ratingProductsContainer');
+
+            container.innerHTML = items.map(item => {
+                const hasReview = item.ulasan_id !== null;
+                return `
+                    <div class="product-review-item" id="review-item-${item.produk_id}">
+                        <img src="${item.photo_url ? (API_BASE + item.photo_url) : 'img/logo.png'}" 
+                             alt="${item.nama_produk}"
+                             onerror="this.src='img/logo.png'">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #07304A; margin-bottom: 4px;">${item.nama_produk}</div>
+                            <div style="color: #64748B; font-size: 14px; margin-bottom: 8px;">${item.jumlah}x @ Rp ${Number(item.harga_saat_beli).toLocaleString('id-ID')}</div>
+                            
+                            ${hasReview ? `
+                                <div>
+                                    <span class="review-badge done"><i class="fas fa-check"></i> Sudah Diulas</span>
+                                    <div style="margin-top: 8px; color: #F59E0B;">
+                                        ${renderStars(item.rating)}
+                                    </div>
+                                    ${item.komentar ? `<p style="color: #374151; font-size: 14px; margin-top: 4px;">"${item.komentar}"</p>` : ''}
+                                </div>
+                            ` : `
+                                <div>
+                                    <span class="review-badge pending"><i class="fas fa-clock"></i> Belum Diulas</span>
+                                    <div class="rating-stars" id="stars-${item.produk_id}">
+                                        ${[1, 2, 3, 4, 5].map(i => `
+                                            <i class="fas fa-star" data-rating="${i}" onclick="setRating(${item.produk_id}, ${i})"></i>
+                                        `).join('')}
+                                    </div>
+                                    <textarea class="review-textarea" id="comment-${item.produk_id}" placeholder="Tulis ulasan Anda (opsional)..."></textarea>
+                                    <button class="btn btn-primary" style="margin-top: 8px;" onclick="submitReview(${item.produk_id})">
+                                        <i class="fas fa-paper-plane"></i> Kirim Ulasan
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                stars += `<i class="fas fa-star" style="color: ${i <= rating ? '#F59E0B' : '#E5E7EB'}"></i>`;
+            }
+            return stars;
+        }
+
+        function setRating(produkId, rating) {
+            productRatings[produkId] = rating;
+            const starsContainer = document.getElementById(`stars-${produkId}`);
+            const stars = starsContainer.querySelectorAll('i');
+            stars.forEach((star, index) => {
+                star.classList.toggle('active', index < rating);
+            });
+        }
+
+        async function submitReview(produkId) {
+            const rating = productRatings[produkId];
+            if (!rating) {
+                API.showModal({ title: 'Perhatian', message: 'Silakan pilih rating terlebih dahulu.' });
+                return;
+            }
+
+            const komentar = document.getElementById(`comment-${produkId}`).value.trim();
+
+            try {
+                const resp = await API.authFetch(`/orders/${currentRatingOrderId}/review`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        produk_id: produkId,
+                        rating: rating,
+                        komentar: komentar || undefined
+                    })
+                });
+
+                if (resp.ok) {
+                    API.showModal({
+                        title: 'Berhasil',
+                        message: 'Terima kasih! Ulasan Anda telah dikirim.',
+                        actions: [{
+                            label: 'OK',
+                            variant: 'primary',
+                            handler: () => {
+                                API.hideModal();
+                                openRatingModal(currentRatingOrderId); // Refresh modal
+                            }
+                        }]
+                    });
+                } else {
+                    const error = await resp.json();
+                    API.showModal({ title: 'Error', message: error.message || 'Gagal mengirim ulasan.' });
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
+            }
+        }
     </script>
 </body>
 

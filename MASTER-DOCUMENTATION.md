@@ -2,8 +2,8 @@
 
 > **E-commerce Hasil Laut** - Platform yang menghubungkan Nelayan/Penjual langsung ke Pembeli
 
-**Last Updated:** December 11, 2025  
-**Version:** 1.2.0  
+**Last Updated:** December 15, 2025  
+**Version:** 1.3.0  
 **Status:** ✅ Production Ready
 
 ---
@@ -116,7 +116,7 @@ Kurir    : (register via registrasi.html)
 - ✅ Tracking pesanan real-time
 - ✅ Lihat lokasi kurir
 - ✅ Konfirmasi pesanan diterima
-- ✅ Beri ulasan produk
+- ✅ **Beri Rating & Ulasan Produk** (1-5 bintang + komentar)
 
 ### 🐟 Untuk Penjual/Nelayan
 - ✅ Kelola produk (CRUD)
@@ -128,6 +128,8 @@ Kurir    : (register via registrasi.html)
 - ✅ Lihat pesanan masuk
 - ✅ Kemas pesanan
 - ✅ Auto-assign kurir
+- ✅ **Laporan Penjualan** (pendapatan, produk terjual, transaksi)
+- ✅ **Lihat Ulasan Pembeli** (rating & komentar)
 
 ### 🚚 Untuk Kurir
 - ✅ Lihat daftar pengiriman
@@ -583,6 +585,32 @@ Verified : 1
 
 ---
 
+### Penjual Laporan & Ulasan Endpoints
+
+**GET `/penjual/laporan`**
+- Laporan penjualan lengkap (requires penjual)
+- Response: `{ products, overall, monthly, rating }`
+- Includes: pendapatan per produk, total terjual, transaksi bulanan
+
+**GET `/penjual/ulasan`**
+- Ulasan produk dari pembeli (requires penjual)
+- Response: array of reviews with rating, komentar, pembeli_nama
+
+---
+
+### Pembeli Rating Endpoints
+
+**POST `/orders/:orderId/review`**
+- Submit rating & ulasan produk (requires pembeli)
+- Body: `{ produk_id, rating (1-5), komentar? }`
+- Only for completed orders
+
+**GET `/orders/:orderId/reviews`**
+- Get review status per order item (requires pembeli)
+- Response: items with review status (reviewed/not reviewed)
+
+---
+
 ### Admin Endpoints
 
 **GET `/admin/users`**
@@ -883,6 +911,36 @@ lautan-kita/
 ---
 
 ## 📝 UPDATE HISTORY
+
+### Version 1.3.0 (December 15, 2025)
+
+**New Features:**
+- ✅ Laporan Penjualan untuk Penjual (pendapatan, produk terjual, transaksi bulanan)
+- ✅ Rating & Ulasan Produk untuk Pembeli (1-5 bintang + komentar)
+- ✅ Penjual dapat melihat ulasan dari pembeli
+- ✅ Statistik rating toko di dashboard penjual
+- ✅ **Rating Pembeli oleh Penjual** (setelah pesanan selesai)
+- ✅ Tabel `rating_pembeli` untuk menyimpan rating pembeli
+- ✅ Statistik rating pembeli (buyer_avg_rating, buyer_total_ratings)
+
+**Files Modified:**
+- `dashboard-penjual.html` - Tab Laporan Penjualan, Ulasan Pembeli, Rating Pembeli
+- `dashboard-pembeli.html` - Modal Rating & Ulasan
+- `backend/src/routes/products.js` - Endpoint laporan penjualan
+- `backend/src/routes/orders.js` - Endpoint rating produk
+- `backend/src/routes/ratings.js` - Endpoint rating pembeli
+- `backend/src/app.js` - Auto-create rating_pembeli table
+
+**API Endpoints Added:**
+- `GET /penjual/laporan` - Laporan penjualan penjual
+- `GET /penjual/ulasan` - Ulasan produk penjual
+- `POST /orders/:orderId/review` - Submit rating produk
+- `GET /orders/:orderId/reviews` - Get review status per order
+- `POST /ratings/buyer` - Penjual submit rating pembeli
+- `GET /ratings/buyer/:id` - Get ratings for a buyer
+- `GET /ratings/rateable-buyers` - Get orders that can be rated by seller
+
+---
 
 ### Version 1.2.0 (December 11, 2025)
 

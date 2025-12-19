@@ -448,8 +448,27 @@
             color: white;
             border-color: #0077B6;
         }
+
+        .rating-stars {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .rating-stars i {
+            font-size: 28px;
+            cursor: pointer;
+            color: #E5E7EB;
+            transition: color 0.2s;
+        }
+
+        .rating-stars i.active,
+        .rating-stars i:hover {
+            color: #F59E0B;
+        }
     </style>
     <script src="assets/js/api.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
@@ -493,8 +512,13 @@
                 <div class="label">Pesanan Masuk</div>
             </div>
             <div class="stat-card">
+                <div class="icon"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="value" id="statRevenue">Rp 0</div>
+                <div class="label">Total Pendapatan</div>
+            </div>
+            <div class="stat-card">
                 <div class="icon"><i class="fas fa-star"></i></div>
-                <div class="value">4.8</div>
+                <div class="value" id="statRating">0.0</div>
                 <div class="label">Rating Toko</div>
             </div>
         </div>
@@ -502,6 +526,8 @@
         <div class="tabs">
             <div class="tab active" onclick="showTab('products')">Produk Saya</div>
             <div class="tab" onclick="showTab('orders')">Pesanan Masuk</div>
+            <div class="tab" onclick="showTab('report')">Laporan Penjualan</div>
+            <div class="tab" onclick="showTab('reviews')">Ulasan Pembeli</div>
         </div>
 
         <div class="card" id="productsView">
@@ -555,7 +581,8 @@
             <div class="filter-bar" style="margin-bottom: 20px;">
                 <select id="filterOrderStatus" onchange="filterOrders()">
                     <option value="">Semua Status</option>
-                    <option value="pending">Menunggu Konfirmasi</option>
+                    <option value="menunggu">Pesanan Baru</option>
+                    <option value="pending">Pembayaran Dikonfirmasi</option>
                     <option value="dikemas">Sedang Dikemas</option>
                     <option value="dikirim">Dalam Pengiriman</option>
                     <option value="selesai">Selesai</option>
@@ -569,6 +596,63 @@
                 </div>
             </div>
         </div>
+
+        <!-- Laporan Penjualan View -->
+        <div class="card" id="reportView" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: #0077B6; margin: 0;"><i class="fas fa-chart-bar"></i> Laporan Penjualan</h3>
+                <button class="btn btn-primary" onclick="exportLaporanPDF()" style="background: #EF4444;">
+                    <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
+            </div>
+
+            <div class="stats" style="margin-bottom: 24px;">
+                <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #00A8E8);">
+                    <div class="icon" style="color: white;"><i class="fas fa-money-bill-wave"></i></div>
+                    <div class="value" id="reportTotalPendapatan" style="color: white;">Rp 0</div>
+                    <div class="label" style="color: rgba(255,255,255,0.8);">Total Pendapatan</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #34D399);">
+                    <div class="icon" style="color: white;"><i class="fas fa-shopping-bag"></i></div>
+                    <div class="value" id="reportTotalTerjual" style="color: white;">0</div>
+                    <div class="label" style="color: rgba(255,255,255,0.8);">Total Produk Terjual</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA);">
+                    <div class="icon" style="color: white;"><i class="fas fa-receipt"></i></div>
+                    <div class="value" id="reportTotalTransaksi" style="color: white;">0</div>
+                    <div class="label" style="color: rgba(255,255,255,0.8);">Total Transaksi</div>
+                </div>
+            </div>
+
+            <h4 style="margin-bottom: 16px; color: #07304A;"><i class="fas fa-box"></i> Penjualan per Produk</h4>
+            <div id="productSalesContainer">
+                <div class="empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <p>Memuat laporan...</p>
+                </div>
+            </div>
+
+            <h4 style="margin: 24px 0 16px; color: #07304A;"><i class="fas fa-calendar-alt"></i> Penjualan 6 Bulan
+                Terakhir</h4>
+            <div id="monthlySalesContainer">
+                <div class="empty-state">
+                    <i class="fas fa-calendar"></i>
+                    <p>Memuat data bulanan...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ulasan Pembeli View -->
+        <div class="card" id="reviewsView" style="display:none;">
+            <h3 style="margin-bottom: 20px; color: #0077B6;"><i class="fas fa-star"></i> Ulasan dari Pembeli</h3>
+            <div id="reviewsContainer">
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <p>Memuat ulasan...</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Modal Tambah/Edit Produk -->
@@ -702,12 +786,10 @@
                 if (!resp.ok) throw new Error('Failed to load orders');
                 myOrders = await resp.json();
                 document.getElementById('statOrders').textContent = myOrders.length;
-
-                // Calculate revenue
-                const revenue = myOrders.reduce((sum, order) => sum + Number(order.subtotal || 0), 0);
-                document.getElementById('statRevenue').textContent = `Rp ${revenue.toLocaleString('id-ID')}`;
-
                 renderOrders();
+
+                // Load sales report for stats
+                loadSalesStats();
             } catch (e) {
                 document.getElementById('ordersContainer').innerHTML = `
           <div class="empty-state">
@@ -718,6 +800,19 @@
             }
         }
 
+        async function loadSalesStats() {
+            try {
+                const resp = await API.authFetch('/penjual/laporan');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    document.getElementById('statRevenue').textContent = `Rp ${Number(data.overall.total_pendapatan).toLocaleString('id-ID')}`;
+                    document.getElementById('statRating').textContent = Number(data.rating.avg_rating).toFixed(1);
+                }
+            } catch (e) {
+                console.log('Failed to load sales stats');
+            }
+        }
+
         function showTab(view) {
             currentView = view;
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -725,6 +820,11 @@
 
             document.getElementById('productsView').style.display = view === 'products' ? 'block' : 'none';
             document.getElementById('ordersView').style.display = view === 'orders' ? 'block' : 'none';
+            document.getElementById('reportView').style.display = view === 'report' ? 'block' : 'none';
+            document.getElementById('reviewsView').style.display = view === 'reviews' ? 'block' : 'none';
+
+            if (view === 'report') loadSalesReport();
+            if (view === 'reviews') loadSellerReviews();
         }
 
         function renderProducts() {
@@ -908,7 +1008,9 @@
             }
 
             const statusMap = {
-                'pending': { label: 'Menunggu Konfirmasi', color: '#F59E0B', icon: 'clock' },
+                '': { label: 'Pesanan Baru', color: '#F59E0B', icon: 'shopping-cart' },
+                'menunggu': { label: 'Pesanan Baru', color: '#F59E0B', icon: 'shopping-cart' },
+                'pending': { label: 'Pembayaran Dikonfirmasi', color: '#10B981', icon: 'check' },
                 'dikemas': { label: 'Sedang Dikemas', color: '#3B82F6', icon: 'box' },
                 'dikirim': { label: 'Dalam Pengiriman', color: '#8B5CF6', icon: 'truck' },
                 'selesai': { label: 'Selesai', color: '#10B981', icon: 'check-circle' },
@@ -916,7 +1018,8 @@
             };
 
             container.innerHTML = filtered.map(order => {
-                const status = statusMap[order.status_pesanan] || statusMap['pending'];
+                const orderStatus = order.status_pesanan || '';
+                const status = statusMap[orderStatus] || statusMap['menunggu'];
                 return `
         <div class="order-item" style="border-left: 4px solid ${status.color};">
           <div class="order-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -954,25 +1057,7 @@
             </div>
           </div>
 
-          ${order.status_pesanan === 'pending' ? `
-            <div style="display: flex; gap: 12px;">
-              <button class="btn btn-success" onclick="packOrder(${order.pesanan_id})" style="flex: 1;">
-                <i class="fas fa-box"></i> Kemas Pesanan
-              </button>
-            </div>
-          ` : order.status_pesanan === 'dikemas' ? `
-            <div style="padding: 12px; background: #DBEAFE; border-radius: 8px; color: #1E40AF;">
-              <i class="fas fa-info-circle"></i> Pesanan sedang menunggu kurir untuk diambil
-            </div>
-          ` : order.status_pesanan === 'dikirim' ? `
-            <div style="padding: 12px; background: #E0E7FF; border-radius: 8px; color: #4338CA;">
-              <i class="fas fa-truck"></i> Pesanan sedang dalam pengiriman
-            </div>
-          ` : order.status_pesanan === 'selesai' ? `
-            <div style="padding: 12px; background: #D1FAE5; border-radius: 8px; color: #065F46;">
-              <i class="fas fa-check-circle"></i> Pesanan telah selesai
-            </div>
-          ` : ''}
+          ${getOrderActionHtml(order)}
         </div>
       `;
             }).join('');
@@ -980,6 +1065,47 @@
 
         function filterOrders() {
             renderOrders();
+        }
+
+        function getOrderActionHtml(order) {
+            const status = order.status_pesanan;
+            console.log('Order status:', order.pesanan_id, status);
+
+            // Handle empty status, pending, or menunggu - all can be packed
+            if (status === 'pending' || status === 'menunggu' || status === '' || !status) {
+                return `
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-success" onclick="packOrder(${order.pesanan_id})" style="flex: 1;">
+                            <i class="fas fa-box"></i> Kemas Pesanan
+                        </button>
+                    </div>
+                `;
+            } else if (status === 'dikemas') {
+                return `
+                    <div style="padding: 12px; background: #DBEAFE; border-radius: 8px; color: #1E40AF;">
+                        <i class="fas fa-info-circle"></i> Pesanan sedang menunggu kurir untuk diambil
+                    </div>
+                `;
+            } else if (status === 'dikirim') {
+                return `
+                    <div style="padding: 12px; background: #E0E7FF; border-radius: 8px; color: #4338CA;">
+                        <i class="fas fa-truck"></i> Pesanan sedang dalam pengiriman
+                    </div>
+                `;
+            } else if (status === 'selesai') {
+                return `
+                    <div style="padding: 12px; background: #D1FAE5; border-radius: 8px; color: #065F46;">
+                        <i class="fas fa-check-circle"></i> Pesanan telah selesai
+                    </div>
+                `;
+            } else if (status === 'dibatalkan') {
+                return `
+                    <div style="padding: 12px; background: #FEE2E2; border-radius: 8px; color: #991B1B;">
+                        <i class="fas fa-times-circle"></i> Pesanan dibatalkan
+                    </div>
+                `;
+            }
+            return '';
         }
 
         async function packOrder(orderId) {
@@ -1068,16 +1194,26 @@
                 imageBase64 = await fileToBase64(imageFile);
             }
 
+            // Validate required fields
+            if (!name || name.length < 2) {
+                API.showModal({ title: 'Error', message: 'Nama produk minimal 2 karakter.' });
+                return;
+            }
+            if (!price || price <= 0) {
+                API.showModal({ title: 'Error', message: 'Harga harus lebih dari 0.' });
+                return;
+            }
+
             const data = {
                 nama_produk: name,
                 kategori: category || undefined,
                 deskripsi: desc || undefined,
-                harga: price,
-                satuan: unit,
-                stok: stock,
-                status: status
+                harga: parseFloat(price),
+                satuan: unit || 'kg',
+                stok: parseInt(stock) || 0,
+                status: status || 'aktif'
             };
-            
+
             // Only include image if one was selected
             if (imageBase64) {
                 data.image = imageBase64;
@@ -1085,7 +1221,7 @@
 
             try {
                 console.log('Submitting product data:', data);
-                
+
                 let resp;
                 if (editingProductId) {
                     console.log('Updating product ID:', editingProductId);
@@ -1113,7 +1249,7 @@
                 } else {
                     const error = await resp.json();
                     console.error('Product save error:', error);
-                    
+
                     let errorMessage = 'Gagal menyimpan produk.';
                     if (error.details && error.details.length > 0) {
                         errorMessage += '\n\nDetail error:\n';
@@ -1123,9 +1259,9 @@
                     } else if (error.message) {
                         errorMessage += '\n\n' + error.message;
                     }
-                    
-                    API.showModal({ 
-                        title: 'Error', 
+
+                    API.showModal({
+                        title: 'Error',
                         message: errorMessage
                     });
                 }
@@ -1166,32 +1302,32 @@
                                     API.showModal({
                                         title: 'Berhasil',
                                         message: 'Produk berhasil dihapus!',
-                                        actions: [{ 
-                                            label: 'OK', 
-                                            variant: 'primary', 
-                                            handler: () => { 
-                                                API.hideModal(); 
-                                                loadProducts(); 
-                                            } 
+                                        actions: [{
+                                            label: 'OK',
+                                            variant: 'primary',
+                                            handler: () => {
+                                                API.hideModal();
+                                                loadProducts();
+                                            }
                                         }]
                                     });
                                 } else {
                                     const error = await resp.json();
                                     let errorMessage = error.message || 'Gagal menghapus produk.';
-                                    
+
                                     if (error.error === 'product_in_pending_orders') {
                                         errorMessage += '\n\nTip: Anda bisa mengubah status produk menjadi "Nonaktif" untuk menyembunyikannya dari pembeli.';
                                     }
-                                    
-                                    API.showModal({ 
-                                        title: 'Tidak Dapat Menghapus Produk', 
+
+                                    API.showModal({
+                                        title: 'Tidak Dapat Menghapus Produk',
                                         message: errorMessage
                                     });
                                 }
                             } catch (e) {
-                                API.showModal({ 
-                                    title: 'Error', 
-                                    message: 'Terjadi kesalahan jaringan.' 
+                                API.showModal({
+                                    title: 'Error',
+                                    message: 'Terjadi kesalahan jaringan.'
                                 });
                             }
                         }
@@ -1214,11 +1350,11 @@
                         'selesai': 'Selesai',
                         'dibatalkan': 'Dibatalkan'
                     };
-                    
+
                     let message = `Informasi Pesanan Produk:\n\n`;
                     message += `Total pesanan: ${data.total_orders}\n`;
                     message += `Pesanan aktif: ${data.pending_orders}\n\n`;
-                    
+
                     if (data.orders.length > 0) {
                         message += `Riwayat pesanan:\n`;
                         data.orders.slice(0, 5).forEach(order => {
@@ -1226,18 +1362,18 @@
                             const date = new Date(order.created_at).toLocaleDateString('id-ID');
                             message += `• Pesanan #${order.pesanan_id} - ${status} (${date})\n`;
                         });
-                        
+
                         if (data.orders.length > 5) {
                             message += `... dan ${data.orders.length - 5} pesanan lainnya\n`;
                         }
                     }
-                    
+
                     if (data.pending_orders > 0) {
                         message += `\n⚠️ Produk tidak dapat dihapus karena masih ada pesanan aktif.`;
                     } else {
                         message += `\n✅ Produk dapat dihapus (tidak ada pesanan aktif).`;
                     }
-                    
+
                     API.showModal({
                         title: 'Info Pesanan Produk',
                         message: message
@@ -1248,6 +1384,373 @@
             } catch (e) {
                 API.showModal({ title: 'Error', message: 'Terjadi kesalahan jaringan.' });
             }
+        }
+
+        // Load sales report
+        async function loadSalesReport() {
+            try {
+                const resp = await API.authFetch('/penjual/laporan');
+                if (!resp.ok) throw new Error('Failed to load report');
+                const data = await resp.json();
+
+                // Update overall stats
+                document.getElementById('reportTotalPendapatan').textContent = `Rp ${Number(data.overall.total_pendapatan).toLocaleString('id-ID')}`;
+                document.getElementById('reportTotalTerjual').textContent = data.overall.total_terjual;
+                document.getElementById('reportTotalTransaksi').textContent = data.overall.total_transaksi;
+
+                // Update header stats
+                document.getElementById('statRevenue').textContent = `Rp ${Number(data.overall.total_pendapatan).toLocaleString('id-ID')}`;
+                document.getElementById('statRating').textContent = Number(data.rating.avg_rating).toFixed(1);
+
+                // Render product sales
+                renderProductSales(data.products);
+                renderMonthlySales(data.monthly);
+            } catch (e) {
+                console.error('Error loading report:', e);
+                document.getElementById('productSalesContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Gagal memuat laporan.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderProductSales(products) {
+            const container = document.getElementById('productSalesContainer');
+            if (!products.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>Belum ada data penjualan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>Produk</th>
+                            <th>Terjual</th>
+                            <th>Pendapatan</th>
+                            <th>Transaksi</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${products.map(p => `
+                            <tr>
+                                <td>
+                                    <div class="product-info">
+                                        <img src="${p.photo_url ? (API_BASE + p.photo_url) : 'img/logo.png'}" 
+                                             alt="${p.nama_produk}" class="product-thumb" 
+                                             onerror="this.src='img/logo.png'">
+                                        <div>
+                                            <div style="font-weight: 600;">${p.nama_produk}</div>
+                                            <small style="color: #64748B;">Stok: ${p.stok}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><strong>${p.total_terjual}</strong> unit</td>
+                                <td style="color: #10B981; font-weight: 600;">Rp ${Number(p.total_pendapatan).toLocaleString('id-ID')}</td>
+                                <td>${p.jumlah_transaksi}x</td>
+                                <td>
+                                    <span style="color: #F59E0B;">
+                                        <i class="fas fa-star"></i> ${Number(p.avg_rating).toFixed(1)}
+                                    </span>
+                                    <small style="color: #64748B;">(${p.total_ulasan} ulasan)</small>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderMonthlySales(monthly) {
+            const container = document.getElementById('monthlySalesContainer');
+            if (!monthly.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar"></i>
+                        <p>Belum ada data penjualan bulanan.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                    ${monthly.map(m => {
+                const [year, month] = m.bulan.split('-');
+                return `
+                            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #0077B6;">
+                                <div style="font-weight: 600; color: #07304A; margin-bottom: 8px;">
+                                    ${monthNames[parseInt(month) - 1]} ${year}
+                                </div>
+                                <div style="color: #10B981; font-weight: 700; font-size: 18px;">
+                                    Rp ${Number(m.pendapatan).toLocaleString('id-ID')}
+                                </div>
+                                <div style="color: #64748B; font-size: 14px;">
+                                    ${m.jumlah_terjual} produk terjual
+                                </div>
+                            </div>
+                        `;
+            }).join('')}
+                </div>
+            `;
+        }
+
+        // Export laporan penjualan ke PDF - format laporan keuangan
+        async function exportLaporanPDF() {
+            try {
+                // Fetch fresh data from API
+                const resp = await API.authFetch('/penjual/laporan');
+                if (!resp.ok) throw new Error('Failed to load report data');
+                const reportData = await resp.json();
+
+                // Get seller name
+                const userName = document.getElementById('welcomeName').textContent.replace('Selamat Datang, ', '').replace('!', '');
+                const today = new Date();
+                const formattedDate = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+                const periodEnd = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                // Calculate totals
+                const totalPendapatan = Number(reportData.overall.total_pendapatan) || 0;
+                const totalTerjual = Number(reportData.overall.total_terjual) || 0;
+                const totalTransaksi = Number(reportData.overall.total_transaksi) || 0;
+
+                // Build product rows for table
+                let productRows = '';
+                let no = 1;
+                reportData.products.forEach(p => {
+                    const terjual = Number(p.total_terjual) || 0;
+                    const pendapatan = Number(p.total_pendapatan) || 0;
+                    const transaksi = Number(p.jumlah_transaksi) || 0;
+                    productRows += `
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: center;">${no++}</td>
+                            <td style="border: 1px solid #000; padding: 8px;">${p.nama_produk}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: center;">${terjual}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: center;">${transaksi}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${pendapatan.toLocaleString('id-ID')}</td>
+                        </tr>
+                    `;
+                });
+
+                // Build monthly rows
+                let monthlyRows = '';
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                reportData.monthly.forEach(m => {
+                    const [year, month] = m.bulan.split('-');
+                    const pendapatan = Number(m.pendapatan) || 0;
+                    const terjual = Number(m.jumlah_terjual) || 0;
+                    monthlyRows += `
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 8px;">${monthNames[parseInt(month) - 1]} ${year}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: center;">${terjual}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${pendapatan.toLocaleString('id-ID')}</td>
+                        </tr>
+                    `;
+                });
+
+                // Create PDF content - formal financial report style
+                const pdfContent = document.createElement('div');
+                pdfContent.innerHTML = `
+                    <div style="padding: 30px; font-family: 'Times New Roman', Times, serif; color: #000; font-size: 12px; line-height: 1.5;">
+                        <!-- Header -->
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h1 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">LAPORAN PENJUALAN</h1>
+                            <h2 style="margin: 5px 0; font-size: 14px; font-weight: normal;">Lautan Kita - Marketplace Hasil Laut</h2>
+                            <p style="margin: 5px 0; font-size: 12px;">Periode: s.d. ${periodEnd}</p>
+                        </div>
+
+                        <hr style="border: none; border-top: 2px solid #000; margin: 15px 0;">
+
+                        <!-- Informasi Penjual -->
+                        <table style="width: 100%; margin-bottom: 20px; font-size: 12px;">
+                            <tr>
+                                <td style="width: 120px;">Nama Penjual</td>
+                                <td style="width: 10px;">:</td>
+                                <td><strong>${userName}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Tanggal Cetak</td>
+                                <td>:</td>
+                                <td>${formattedDate}</td>
+                            </tr>
+                        </table>
+
+                        <!-- Ringkasan -->
+                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">I. RINGKASAN PENJUALAN</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <tr>
+                                <td style="padding: 5px 0; width: 200px;">Total Pendapatan</td>
+                                <td style="padding: 5px 0; width: 10px;">:</td>
+                                <td style="padding: 5px 0; text-align: right; font-weight: bold;">Rp ${totalPendapatan.toLocaleString('id-ID')}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;">Total Produk Terjual</td>
+                                <td style="padding: 5px 0;">:</td>
+                                <td style="padding: 5px 0; text-align: right;">${totalTerjual} unit</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;">Total Transaksi</td>
+                                <td style="padding: 5px 0;">:</td>
+                                <td style="padding: 5px 0; text-align: right;">${totalTransaksi} transaksi</td>
+                            </tr>
+                        </table>
+
+                        <!-- Detail Penjualan per Produk -->
+                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">II. RINCIAN PENJUALAN PER PRODUK</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background: #f0f0f0;">
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 40px;">No</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: left;">Nama Produk</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 80px;">Qty Terjual</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 80px;">Transaksi</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 120px;">Pendapatan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${productRows || '<tr><td colspan="5" style="border: 1px solid #000; padding: 8px; text-align: center;">Belum ada data penjualan</td></tr>'}
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f0f0f0; font-weight: bold;">
+                                    <td colspan="2" style="border: 1px solid #000; padding: 8px; text-align: right;">TOTAL</td>
+                                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${totalTerjual}</td>
+                                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${totalTransaksi}</td>
+                                    <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${totalPendapatan.toLocaleString('id-ID')}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <!-- Penjualan Bulanan -->
+                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">III. REKAPITULASI PENJUALAN BULANAN</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <thead>
+                                <tr style="background: #f0f0f0;">
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: left;">Periode</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 100px;">Qty Terjual</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 150px;">Pendapatan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${monthlyRows || '<tr><td colspan="3" style="border: 1px solid #000; padding: 8px; text-align: center;">Belum ada data penjualan bulanan</td></tr>'}
+                            </tbody>
+                        </table>
+
+                        <!-- Footer -->
+                        <div style="margin-top: 40px;">
+                            <div style="float: right; text-align: center; width: 200px;">
+                                <p style="margin: 0;">${formattedDate}</p>
+                                <p style="margin: 40px 0 5px;">_______________________</p>
+                                <p style="margin: 0; font-weight: bold;">${userName}</p>
+                                <p style="margin: 0; font-size: 11px;">Penjual</p>
+                            </div>
+                            <div style="clear: both;"></div>
+                        </div>
+
+                        <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0 10px;">
+                        <p style="text-align: center; font-size: 10px; color: #666; margin: 0;">
+                            Dokumen ini digenerate secara otomatis oleh sistem Lautan Kita pada ${today.toLocaleString('id-ID')}<br>
+                            © ${today.getFullYear()} Lautan Kita - Marketplace Hasil Laut
+                        </p>
+                    </div>
+                `;
+
+                // PDF options
+                const opt = {
+                    margin: 10,
+                    filename: `Laporan-Penjualan-${userName.replace(/\s+/g, '-')}-${today.toISOString().split('T')[0]}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                // Generate PDF
+                await html2pdf().set(opt).from(pdfContent).save();
+
+                API.showModal({
+                    title: 'Berhasil',
+                    message: 'Laporan penjualan berhasil diexport ke PDF!',
+                    actions: [{ label: 'OK', variant: 'primary', handler: () => API.hideModal() }]
+                });
+            } catch (e) {
+                console.error('Error exporting PDF:', e);
+                API.showModal({
+                    title: 'Error',
+                    message: 'Gagal mengexport laporan ke PDF.',
+                    actions: [{ label: 'OK', variant: 'primary', handler: () => API.hideModal() }]
+                });
+            }
+        }
+
+        // Load seller reviews
+        async function loadSellerReviews() {
+            try {
+                const resp = await API.authFetch('/penjual/ulasan');
+                if (!resp.ok) throw new Error('Failed to load reviews');
+                const reviews = await resp.json();
+                renderSellerReviews(reviews);
+            } catch (e) {
+                console.error('Error loading reviews:', e);
+                document.getElementById('reviewsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Gagal memuat ulasan.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderSellerReviews(reviews) {
+            const container = document.getElementById('reviewsContainer');
+            if (!reviews.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-comments"></i>
+                        <p>Belum ada ulasan dari pembeli.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = reviews.map(r => `
+                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${r.photo_url ? (API_BASE + r.photo_url) : 'img/logo.png'}" 
+                                 alt="${r.nama_produk}" 
+                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;"
+                                 onerror="this.src='img/logo.png'">
+                            <div>
+                                <div style="font-weight: 600; color: #07304A;">${r.nama_produk}</div>
+                                <div style="color: #64748B; font-size: 14px;">oleh ${r.pembeli_nama}</div>
+                            </div>
+                        </div>
+                        <div style="color: #F59E0B; font-size: 16px;">
+                            ${renderStars(r.rating)}
+                        </div>
+                    </div>
+                    ${r.komentar ? `<p style="color: #374151; margin: 0;">"${r.komentar}"</p>` : '<p style="color: #9CA3AF; font-style: italic;">Tidak ada komentar</p>'}
+                    <div style="color: #9CA3AF; font-size: 12px; margin-top: 8px;">
+                        ${new Date(r.dibuat_pada).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) {
+                stars += `<i class="fas fa-star" style="color: ${i <= rating ? '#F59E0B' : '#E5E7EB'}"></i>`;
+            }
+            return stars;
         }
 
         document.addEventListener('DOMContentLoaded', init);

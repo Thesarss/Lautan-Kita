@@ -16,59 +16,59 @@ router.post('/ratings/seller', requireAuth, requireRole(['pembeli']), [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
-  
+
   const { pesanan_id, penjual_id, rating, komentar } = req.body;
   const conn = await pool.getConnection();
-  
+
   try {
     await conn.beginTransaction();
-    
+
     // Verify order exists, belongs to buyer, and is completed
     const [orderCheck] = await conn.query(`
       SELECT p.pesanan_id, p.status_pesanan 
       FROM pesanan p 
       WHERE p.pesanan_id = ? AND p.pembeli_id = ? AND p.status_pesanan = 'selesai'
     `, [pesanan_id, req.user.id]);
-    
+
     if (!orderCheck.length) {
       await conn.rollback();
       return res.status(404).json({ error: 'order_not_found_or_not_completed' });
     }
-    
+
     // Verify seller was involved in this order
     const [sellerCheck] = await conn.query(`
       SELECT COUNT(*) as count FROM pesanan_item pi
       JOIN produk pr ON pr.produk_id = pi.produk_id
       WHERE pi.pesanan_id = ? AND pr.penjual_id = ?
     `, [pesanan_id, penjual_id]);
-    
+
     if (!sellerCheck[0].count) {
       await conn.rollback();
       return res.status(400).json({ error: 'seller_not_in_order' });
     }
-    
+
     // Check if rating already exists
     const [existingRating] = await conn.query(`
       SELECT rating_id FROM rating_penjual 
       WHERE pembeli_id = ? AND pesanan_id = ? AND penjual_id = ?
     `, [req.user.id, pesanan_id, penjual_id]);
-    
+
     if (existingRating.length) {
       await conn.rollback();
       return res.status(409).json({ error: 'rating_already_exists' });
     }
-    
+
     // Insert rating
     const [insertResult] = await conn.query(`
       INSERT INTO rating_penjual (penjual_id, pembeli_id, pesanan_id, rating, komentar, status)
       VALUES (?, ?, ?, ?, ?, 'aktif')
     `, [penjual_id, req.user.id, pesanan_id, rating, komentar || null]);
-    
+
     // Update seller's average rating
     await updateSellerRating(conn, penjual_id);
-    
+
     await conn.commit();
-    res.status(201).json({ 
+    res.status(201).json({
       rating_id: insertResult.insertId,
       message: 'Rating berhasil diberikan'
     });
@@ -89,11 +89,11 @@ router.get('/ratings/seller/:id', [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
-  
+
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const offset = (page - 1) * limit;
-  
+
   const conn = await pool.getConnection();
   try {
     // Get seller info with average rating
@@ -102,11 +102,11 @@ router.get('/ratings/seller/:id', [
       FROM user u 
       WHERE u.user_id = ? AND u.role = 'penjual'
     `, [req.params.id]);
-    
+
     if (!sellerInfo.length) {
       return res.status(404).json({ error: 'seller_not_found' });
     }
-    
+
     // Get ratings with pagination
     const [ratings] = await conn.query(`
       SELECT 
@@ -118,16 +118,16 @@ router.get('/ratings/seller/:id', [
       ORDER BY r.dibuat_pada DESC
       LIMIT ? OFFSET ?
     `, [req.params.id, limit, offset]);
-    
+
     // Get total count for pagination
     const [countResult] = await conn.query(`
       SELECT COUNT(*) as total FROM rating_penjual 
       WHERE penjual_id = ? AND status = 'aktif'
     `, [req.params.id]);
-    
+
     const total = countResult[0].total;
     const totalPages = Math.ceil(total / limit);
-    
+
     res.json({
       seller: sellerInfo[0],
       ratings,
@@ -163,7 +163,7 @@ router.get('/ratings/rateable-orders', requireAuth, requireRole(['pembeli']), as
       WHERE p.pembeli_id = ? AND p.status_pesanan = 'selesai'
       ORDER BY p.created_at DESC
     `, [req.user.id, req.user.id]);
-    
+
     res.json(orders);
   } finally {
     conn.release();
@@ -178,36 +178,36 @@ router.patch('/ratings/seller/:ratingId', requireAuth, requireRole(['pembeli']),
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
-  
+
   const { rating, komentar } = req.body;
   const conn = await pool.getConnection();
-  
+
   try {
     await conn.beginTransaction();
-    
+
     // Check if rating exists and belongs to user
     const [existingRating] = await conn.query(`
       SELECT rating_id, penjual_id FROM rating_penjual 
       WHERE rating_id = ? AND pembeli_id = ?
     `, [req.params.ratingId, req.user.id]);
-    
+
     if (!existingRating.length) {
       await conn.rollback();
       return res.status(404).json({ error: 'rating_not_found' });
     }
-    
+
     const penjualId = existingRating[0].penjual_id;
-    
+
     // Update rating
     await conn.query(`
       UPDATE rating_penjual 
       SET rating = COALESCE(?, rating), komentar = COALESCE(?, komentar)
       WHERE rating_id = ?
     `, [rating || null, komentar || null, req.params.ratingId]);
-    
+
     // Update seller's average rating
     await updateSellerRating(conn, penjualId);
-    
+
     await conn.commit();
     res.json({ ok: true, message: 'Rating berhasil diperbarui' });
   } catch (e) {
@@ -226,33 +226,33 @@ router.patch('/admin/ratings/:ratingId/status', requireAuth, requireRole(['admin
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
-  
+
   const { status } = req.body;
   const conn = await pool.getConnection();
-  
+
   try {
     await conn.beginTransaction();
-    
+
     // Get rating info
     const [ratingInfo] = await conn.query(`
       SELECT penjual_id FROM rating_penjual WHERE rating_id = ?
     `, [req.params.ratingId]);
-    
+
     if (!ratingInfo.length) {
       await conn.rollback();
       return res.status(404).json({ error: 'rating_not_found' });
     }
-    
+
     const penjualId = ratingInfo[0].penjual_id;
-    
+
     // Update status
     await conn.query(`
       UPDATE rating_penjual SET status = ? WHERE rating_id = ?
     `, [status, req.params.ratingId]);
-    
+
     // Update seller's average rating
     await updateSellerRating(conn, penjualId);
-    
+
     await conn.commit();
     res.json({ ok: true });
   } catch (e) {
@@ -273,10 +273,10 @@ async function updateSellerRating(conn, penjualId) {
     FROM rating_penjual 
     WHERE penjual_id = ? AND status = 'aktif'
   `, [penjualId]);
-  
+
   const avgRating = stats[0].avg_rating ? parseFloat(stats[0].avg_rating).toFixed(2) : null;
   const totalRatings = stats[0].total_ratings || 0;
-  
+
   await conn.query(`
     UPDATE user 
     SET avg_rating = ?, total_ratings = ?

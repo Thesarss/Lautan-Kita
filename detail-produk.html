@@ -59,17 +59,15 @@
                 </div>
             </div>
 
-            <div class="review-card info-card user-review-display" id="userReviewCard" style="display:none;">
-                <div class="card-header">
-                    <img id="reviewAvatar" src="img/pembeli.png" alt="Pembeli" class="avatar" />
-                    <div class="review-meta">
-                        <strong class="review-name" id="reviewUser">Pembeli</strong>
-                        <p class="review-text" id="reviewComment">Ulasan pembeli...</p>
-                    </div>
-                    <div class="rating" id="reviewRating">★★★★★</div>
-                </div>
-                <div class="review-body">
-                    <img id="reviewImage" src="" alt="Review" class="review-img" style="display:none;" />
+            <!-- Reviews Section -->
+            <div class="info-card" id="reviewsSection" style="margin-top: 20px;">
+                <h3 style="margin-bottom: 16px; color: #0077B6;">
+                    <span style="margin-right: 8px;">⭐</span> Ulasan Pembeli
+                    <span id="reviewCount" style="font-size: 14px; color: #64748B; font-weight: normal;">(0
+                        ulasan)</span>
+                </h3>
+                <div id="reviewsContainer">
+                    <p style="color: #64748B; text-align: center; padding: 20px;">Memuat ulasan...</p>
                 </div>
             </div>
 
@@ -170,6 +168,8 @@
                             status: product.status === 'aktif' ? 'Tersedia' : 'Tidak Tersedia'
                         };
                         renderProduct(currentProduct);
+                        // Load reviews for this product
+                        loadProductReviews(product.produk_id);
                         return;
                     }
                 }
@@ -391,6 +391,77 @@
                 message: 'Fitur kunjungi toko penjual akan segera hadir!',
                 actions: [{ label: 'OK', variant: 'primary', handler: API.hideModal }]
             });
+        }
+
+        async function loadProductReviews(productId) {
+            try {
+                const resp = await fetch(`${API_BASE}/products/${productId}/reviews`);
+                if (!resp.ok) throw new Error('Failed to load reviews');
+
+                const data = await resp.json();
+                renderReviews(data);
+            } catch (e) {
+                console.error('Error loading reviews:', e);
+                document.getElementById('reviewsContainer').innerHTML = `
+                    <p style="color: #64748B; text-align: center; padding: 20px;">Belum ada ulasan untuk produk ini.</p>
+                `;
+            }
+        }
+
+        function renderReviews(data) {
+            const container = document.getElementById('reviewsContainer');
+            const countEl = document.getElementById('reviewCount');
+
+            countEl.textContent = `(${data.total_reviews} ulasan)`;
+
+            // Update product rating display
+            if (data.avg_rating > 0) {
+                const ratingEl = document.getElementById('productRating');
+                const avgRating = Math.round(data.avg_rating);
+                let stars = '';
+                for (let i = 0; i < 5; i++) {
+                    stars += i < avgRating ? '★' : '☆';
+                }
+                ratingEl.textContent = stars + ` (${Number(data.avg_rating).toFixed(1)})`;
+            }
+
+            if (!data.reviews || data.reviews.length === 0) {
+                container.innerHTML = `
+                    <p style="color: #64748B; text-align: center; padding: 20px;">Belum ada ulasan untuk produk ini.</p>
+                `;
+                return;
+            }
+
+            container.innerHTML = data.reviews.map(r => `
+                <div style="border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 12px; background: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: #0077B6; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                ${(r.pembeli_nama || 'U').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: #07304A;">${r.pembeli_nama || 'Pembeli'}</div>
+                                <div style="font-size: 12px; color: #64748B;">${new Date(r.tanggal).toLocaleDateString('id-ID')}</div>
+                            </div>
+                        </div>
+                        <div style="color: #F59E0B; font-size: 16px;">
+                            ${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}
+                        </div>
+                    </div>
+                    <p style="color: #374151; line-height: 1.6; margin: 0;">${r.komentar || '-'}</p>
+                    ${r.balasan_admin ? `
+                        <div style="background: #E0F2FE; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 3px solid #0077B6;">
+                            <div style="font-size: 12px; color: #0077B6; font-weight: 600; margin-bottom: 4px;">
+                                ↩️ Balasan dari ${r.admin_nama || 'Admin'}
+                            </div>
+                            <p style="color: #374151; margin: 0; font-size: 14px;">${r.balasan_admin}</p>
+                            <div style="font-size: 11px; color: #64748B; margin-top: 4px;">
+                                ${r.tanggal_balasan ? new Date(r.tanggal_balasan).toLocaleDateString('id-ID') : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
         }
 
         // Load product saat halaman dimuat

@@ -621,6 +621,58 @@
             padding: 6px 12px;
             font-size: 13px;
         }
+
+        /* MODAL STYLES */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eaeaea;
+        }
     </style>
 </head>
 
@@ -1104,23 +1156,23 @@
                 const resp = await API.authFetch('/admin/stats');
                 if (resp.ok) {
                     const stats = await resp.json();
-                    
+
                     // Update dashboard stats
                     document.getElementById('statUsers').textContent = stats.users.total_users || 0;
                     document.getElementById('statProducts').textContent = stats.products.total_products || 0;
                     document.getElementById('statOrders').textContent = stats.orders.total_orders || 0;
                     document.getElementById('statRevenue').textContent = `Rp ${(stats.orders.total_revenue || 0).toLocaleString('id-ID')}`;
-                    
+
                     // Update additional stats if elements exist
                     const verifiedUsersEl = document.getElementById('statVerifiedUsers');
                     if (verifiedUsersEl) verifiedUsersEl.textContent = stats.users.verified_users || 0;
-                    
+
                     const activeProductsEl = document.getElementById('statActiveProducts');
                     if (activeProductsEl) activeProductsEl.textContent = stats.products.active_products || 0;
-                    
+
                     const completedOrdersEl = document.getElementById('statCompletedOrders');
                     if (completedOrdersEl) completedOrdersEl.textContent = stats.orders.completed_orders || 0;
-                    
+
                     const confirmedPaymentsEl = document.getElementById('statConfirmedPayments');
                     if (confirmedPaymentsEl) confirmedPaymentsEl.textContent = stats.payments.confirmed_payments || 0;
                 }
@@ -1215,15 +1267,15 @@
             try {
                 const resp = await API.authFetch('/admin/orders');
                 if (!resp.ok) throw new Error('Failed to load orders');
-                
+
                 const orders = await resp.json();
                 const tbody = document.getElementById('ordersTableBody');
-                
+
                 if (orders.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Tidak ada pesanan</td></tr>';
                     return;
                 }
-                
+
                 tbody.innerHTML = orders.map(order => {
                     const statusMap = {
                         'pending': { label: 'Menunggu', class: 'warning' },
@@ -1232,9 +1284,9 @@
                         'selesai': { label: 'Selesai', class: 'success' },
                         'dibatalkan': { label: 'Dibatalkan', class: 'danger' }
                     };
-                    
+
                     const status = statusMap[order.status_pesanan] || { label: order.status_pesanan, class: 'secondary' };
-                    
+
                     return `
                         <tr>
                             <td>#${order.pesanan_id}</td>
@@ -1258,30 +1310,30 @@
                         </tr>
                     `;
                 }).join('');
-                
+
             } catch (e) {
                 console.error('Failed to load orders:', e);
                 const tbody = document.getElementById('ordersTableBody');
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Gagal memuat data pesanan</td></tr>';
             }
         }
-        
+
         async function updateOrderStatus(orderId, newStatus) {
             if (!newStatus) return;
-            
+
             if (!confirm(`Ubah status pesanan #${orderId} menjadi ${newStatus}?`)) {
                 // Reset select value
                 loadOrders();
                 return;
             }
-            
+
             try {
                 const resp = await API.authFetch(`/admin/orders/${orderId}/status`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status_pesanan: newStatus })
                 });
-                
+
                 if (resp.ok) {
                     API.showModal({
                         title: 'Berhasil',
@@ -1342,9 +1394,9 @@
                     'sudah_dibayar': { label: 'Sudah Dibayar', class: 'success' },
                     'gagal': { label: 'Gagal', class: 'danger' }
                 };
-                
+
                 const status = statusMap[t.status_pembayaran] || { label: t.status_pembayaran, class: 'secondary' };
-                
+
                 return `
                     <tr>
                         <td>#${t.pembayaran_id}</td>
@@ -1378,7 +1430,7 @@
             const summaryConfirmedEl = document.getElementById('summaryConfirmed');
             const summaryPendingEl = document.getElementById('summaryPending');
             const summaryFailedEl = document.getElementById('summaryFailed');
-            
+
             if (summaryTotalEl) summaryTotalEl.textContent = `Rp ${total.toLocaleString('id-ID')}`;
             if (summaryConfirmedEl) summaryConfirmedEl.textContent = confirmed;
             if (summaryPendingEl) summaryPendingEl.textContent = pending;
@@ -1480,6 +1532,14 @@
                         <i class="fas fa-box"></i> ${r.nama_produk || 'Produk'}
                     </div>
                     <div class="review-content">${r.komentar || '-'}</div>
+                    ${r.balasan_admin ? `
+                        <div style="background: #E0F2FE; padding: 12px; border-radius: 8px; margin-top: 12px; border-left: 3px solid var(--primary);">
+                            <div style="font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px;">
+                                <i class="fas fa-reply"></i> Balasan Admin
+                            </div>
+                            <div style="color: #374151;">${r.balasan_admin}</div>
+                        </div>
+                    ` : ''}
                     <div style="font-size: 13px; color: #64748B; margin-top: 8px;">
                         ${new Date(r.tanggal_ulasan).toLocaleDateString('id-ID')}
                     </div>
@@ -1492,6 +1552,9 @@
                         </button>` : ''}
                         <button class="btn btn-sm btn-primary" onclick="viewReviewDetail(${r.ulasan_id})">
                             <i class="fas fa-eye"></i> Detail
+                        </button>
+                        <button class="btn btn-sm" style="background: #8B5CF6; color: white;" onclick="replyReview(${r.ulasan_id})">
+                            <i class="fas fa-reply"></i> ${r.balasan_admin ? 'Edit Balasan' : 'Balas'}
                         </button>
                     </div>
                 </div>
@@ -1543,6 +1606,7 @@
         }
 
         function viewReviewDetail(reviewId) {
+            closeAllModals(); // Close any open modal first
             const review = allReviews.find(r => r.ulasan_id === reviewId);
             if (!review) return;
 
@@ -1572,6 +1636,68 @@
             document.getElementById('reviewDetailModal').classList.remove('active');
         }
 
+        function replyReview(reviewId) {
+            closeAllModals(); // Close any open modal first
+            const review = allReviews.find(r => r.ulasan_id === reviewId);
+            if (!review) return;
+
+            document.getElementById('reviewDetailContent').innerHTML = `
+                <div style="text-align: left;">
+                    <div style="margin-bottom: 15px;">
+                        <strong>Pembeli:</strong> ${review.pembeli_nama || 'User'}<br>
+                        <strong>Produk:</strong> ${review.nama_produk || '-'}<br>
+                        <strong>Rating:</strong> <span style="color: #fbbf24;">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Komentar Pembeli:</strong>
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-top: 8px;">
+                            ${review.komentar || '-'}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><strong>Balasan Admin:</strong></label>
+                        <textarea id="replyText" rows="4" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; resize: vertical;">${review.balasan_admin || ''}</textarea>
+                    </div>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button class="btn btn-secondary" onclick="closeReviewModal()">Batal</button>
+                        <button class="btn btn-primary" onclick="submitReply(${reviewId})">
+                            <i class="fas fa-paper-plane"></i> Kirim Balasan
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('reviewDetailModal').classList.add('active');
+        }
+
+        async function submitReply(reviewId) {
+            const balasan = document.getElementById('replyText').value.trim();
+            if (!balasan) {
+                API.showModal({ title: 'Error', message: 'Balasan tidak boleh kosong' });
+                return;
+            }
+
+            try {
+                const resp = await API.authFetch(`/admin/reviews/${reviewId}/reply`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ balasan })
+                });
+
+                if (resp.ok) {
+                    closeReviewModal();
+                    API.showModal({
+                        title: 'Berhasil',
+                        message: 'Balasan berhasil dikirim',
+                        actions: [{ label: 'OK', variant: 'primary', handler: () => { API.hideModal(); loadReviews(); } }]
+                    });
+                } else {
+                    API.showModal({ title: 'Error', message: 'Gagal mengirim balasan' });
+                }
+            } catch (e) {
+                API.showModal({ title: 'Error', message: 'Terjadi kesalahan' });
+            }
+        }
+
         function editUser(userId) {
             const user = document.querySelector(`#usersTableBody tr[data-user-id="${userId}"]`);
             if (!user) {
@@ -1596,7 +1722,15 @@
             openEditUserModal(userData);
         }
 
+        // Helper function to close all modals
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.remove('active');
+            });
+        }
+
         function openEditUserModal(user) {
+            closeAllModals(); // Close any open modal first
             currentEditUserId = user.user_id;
             document.getElementById('editUserName').value = user.nama;
             document.getElementById('editUserEmail').value = user.email;
@@ -1651,6 +1785,15 @@
             localStorage.removeItem('auth_token');
             window.location.href = 'login.html';
         }
+
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
     </script>
 </body>
 

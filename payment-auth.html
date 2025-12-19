@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autentikasi Pembayaran - Lautan Kita</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Konfirmasi Pembayaran - Lautan Kita</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -11,11 +12,11 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0077B6 0%, #00A8E8 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -23,39 +24,34 @@
             padding: 20px;
         }
 
-        .auth-container {
+        .container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            width: 100%;
+            border-radius: 16px;
+            padding: 32px;
             max-width: 450px;
-            padding: 40px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .header {
             text-align: center;
+            margin-bottom: 24px;
         }
 
-        .bank-logo {
-            width: 80px;
-            height: 80px;
-            background: #0077B6;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            color: white;
-            font-size: 32px;
+        .header i {
+            font-size: 48px;
+            color: #0077B6;
+            margin-bottom: 16px;
         }
 
-        .auth-title {
+        .header h1 {
+            color: #07304A;
             font-size: 24px;
-            font-weight: 700;
-            color: #333;
             margin-bottom: 8px;
         }
 
-        .auth-subtitle {
-            color: #666;
-            margin-bottom: 30px;
+        .header p {
+            color: #64748B;
             font-size: 14px;
         }
 
@@ -63,49 +59,51 @@
             background: #f8fafc;
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 30px;
-            text-align: left;
+            margin-bottom: 24px;
         }
 
-        .payment-info h3 {
-            color: #0077B6;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        .info-row {
+        .payment-info .row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
+            margin-bottom: 12px;
         }
 
-        .info-label {
-            color: #666;
+        .payment-info .row:last-child {
+            margin-bottom: 0;
+            padding-top: 12px;
+            border-top: 2px solid #e5e7eb;
         }
 
-        .info-value {
+        .payment-info .label {
+            color: #64748B;
+        }
+
+        .payment-info .value {
             font-weight: 600;
-            color: #333;
+            color: #07304A;
+        }
+
+        .payment-info .total {
+            font-size: 20px;
+            color: #0077B6;
         }
 
         .form-group {
             margin-bottom: 20px;
-            text-align: left;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
+            color: #07304A;
         }
 
         .form-group input {
             width: 100%;
             padding: 12px 16px;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.3s;
         }
@@ -115,38 +113,15 @@
             border-color: #0077B6;
         }
 
-        .pin-input {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .pin-digit {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: 600;
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            transition: border-color 0.3s;
-        }
-
-        .pin-digit:focus {
-            outline: none;
-            border-color: #0077B6;
-        }
-
         .btn {
             width: 100%;
             padding: 14px;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            margin-bottom: 15px;
         }
 
         .btn-primary {
@@ -155,27 +130,23 @@
         }
 
         .btn-primary:hover {
-            background: #005a8b;
+            background: #005f8f;
             transform: translateY(-2px);
         }
 
         .btn-secondary {
-            background: #f1f3f4;
-            color: #666;
+            background: #e5e7eb;
+            color: #374151;
+            margin-top: 12px;
         }
 
         .btn-secondary:hover {
-            background: #e8eaed;
+            background: #d1d5db;
         }
 
-        .security-info {
-            background: #e8f5e8;
-            border: 1px solid #4caf50;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #2e7d32;
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .loading {
@@ -184,252 +155,230 @@
             padding: 20px;
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #0077B6;
-            border-radius: 50%;
+        .loading.active {
+            display: block;
+        }
+
+        .loading i {
+            font-size: 32px;
+            color: #0077B6;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
 
-        .success-animation {
+        .success-message {
             display: none;
             text-align: center;
             padding: 20px;
         }
 
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background: #4caf50;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            color: white;
-            font-size: 40px;
-            animation: successPulse 0.6s ease-in-out;
+        .success-message.active {
+            display: block;
         }
 
-        @keyframes successPulse {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+        .success-message i {
+            font-size: 64px;
+            color: #10B981;
+            margin-bottom: 16px;
+        }
+
+        .success-message h2 {
+            color: #07304A;
+            margin-bottom: 8px;
+        }
+
+        .success-message p {
+            color: #64748B;
+        }
+
+        .error-message {
+            background: #FEE2E2;
+            color: #991B1B;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
         }
     </style>
     <script src="assets/js/api.js"></script>
 </head>
+
 <body>
-    <div class="auth-container">
-        <!-- Payment Authentication Form -->
-        <div id="authForm">
-            <div class="bank-logo">
-                <i class="fas fa-university"></i>
+    <div class="container">
+        <div id="formSection">
+            <div class="header">
+                <i class="fas fa-shield-alt"></i>
+                <h1>Konfirmasi Pembayaran</h1>
+                <p>Masukkan kode verifikasi untuk mengkonfirmasi pembayaran Anda</p>
             </div>
-            <h1 class="auth-title">Autentikasi Pembayaran</h1>
-            <p class="auth-subtitle">Masukkan PIN untuk mengkonfirmasi pembayaran</p>
 
             <div class="payment-info">
-                <h3>Detail Pembayaran</h3>
-                <div class="info-row">
-                    <span class="info-label">Merchant:</span>
-                    <span class="info-value">Lautan Kita</span>
+                <div class="row">
+                    <span class="label">No. Pesanan</span>
+                    <span class="value" id="orderId">-</span>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Pesanan:</span>
-                    <span class="info-value" id="orderInfo">#-</span>
+                <div class="row">
+                    <span class="label">Metode Pembayaran</span>
+                    <span class="value" id="paymentMethod">-</span>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Jumlah:</span>
-                    <span class="info-value" id="amountInfo">Rp -</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Metode:</span>
-                    <span class="info-value" id="methodInfo">-</span>
+                <div class="row">
+                    <span class="label">Total Pembayaran</span>
+                    <span class="value total" id="totalAmount">Rp 0</span>
                 </div>
             </div>
 
-            <form id="pinForm">
+            <div class="error-message" id="errorMessage"></div>
+
+            <form id="authForm">
                 <div class="form-group">
-                    <label>PIN Pembayaran (6 digit)</label>
-                    <div style="background: #E8F5E8; border: 1px solid #4CAF50; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 14px; color: #2E7D32;">
-                        <i class="fas fa-info-circle"></i> <strong>Demo Mode:</strong> Masukkan 6 digit angka apapun (contoh: 123456)
-                    </div>
-                    <div class="pin-input">
-                        <input type="password" class="pin-digit" maxlength="1" id="pin1" placeholder="•">
-                        <input type="password" class="pin-digit" maxlength="1" id="pin2" placeholder="•">
-                        <input type="password" class="pin-digit" maxlength="1" id="pin3" placeholder="•">
-                        <input type="password" class="pin-digit" maxlength="1" id="pin4" placeholder="•">
-                        <input type="password" class="pin-digit" maxlength="1" id="pin5" placeholder="•">
-                        <input type="password" class="pin-digit" maxlength="1" id="pin6" placeholder="•">
-                    </div>
+                    <label>Kode Verifikasi</label>
+                    <input type="text" id="verificationCode" placeholder="Masukkan kode verifikasi (contoh: 123456)"
+                        maxlength="6" required>
+                    <small style="color: #64748B; display: block; margin-top: 8px;">
+                        <i class="fas fa-info-circle"></i> Untuk demo, masukkan kode: <strong>123456</strong>
+                    </small>
                 </div>
 
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-lock"></i> Konfirmasi Pembayaran
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="cancelPayment()">
-                    <i class="fas fa-times"></i> Batalkan
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-check-circle"></i> Konfirmasi Pembayaran
                 </button>
             </form>
 
-            <div class="security-info">
-                <i class="fas fa-shield-alt"></i>
-                Transaksi Anda dilindungi dengan enkripsi 256-bit SSL
-            </div>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </button>
         </div>
 
-        <!-- Loading State -->
-        <div id="loadingState" class="loading">
-            <div class="spinner"></div>
-            <p>Memproses pembayaran...</p>
-            <small>Mohon tunggu, jangan tutup halaman ini</small>
+        <div class="loading" id="loadingSection">
+            <i class="fas fa-spinner"></i>
+            <p style="margin-top: 16px; color: #64748B;">Memproses pembayaran...</p>
         </div>
 
-        <!-- Success State -->
-        <div id="successState" class="success-animation">
-            <div class="success-icon">
-                <i class="fas fa-check"></i>
-            </div>
-            <h2 style="color: #4caf50; margin-bottom: 10px;">Pembayaran Berhasil Dikonfirmasi!</h2>
-            <p style="color: #666; margin-bottom: 20px;">Transaksi Anda telah berhasil diverifikasi dan dikonfirmasi. Pesanan akan segera diproses.</p>
-            <button class="btn btn-primary" onclick="redirectToOrder()">
-                <i class="fas fa-receipt"></i> Lihat Detail Pesanan
+        <div class="success-message" id="successSection">
+            <i class="fas fa-check-circle"></i>
+            <h2>Pembayaran Berhasil!</h2>
+            <p>Pembayaran Anda telah dikonfirmasi. Pesanan akan segera diproses.</p>
+            <button class="btn btn-primary" style="margin-top: 20px;" onclick="redirectToDashboard()">
+                <i class="fas fa-home"></i> Kembali ke Dashboard
             </button>
         </div>
     </div>
 
     <script>
         const API_BASE = (window.API && window.API.base) || 'http://localhost:4000';
-        let currentPaymentId = null;
-        let currentOrderId = null;
+        let paymentId = null;
+        let orderId = null;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get payment info from URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            currentPaymentId = urlParams.get('payment_id');
-            currentOrderId = urlParams.get('order_id');
-            const amount = urlParams.get('amount');
-            const method = urlParams.get('method');
-
-            if (!currentPaymentId || !currentOrderId) {
-                alert('Data pembayaran tidak valid');
-                window.history.back();
+        function init() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = 'login.html';
                 return;
             }
 
-            // Update payment info display
-            document.getElementById('orderInfo').textContent = `#${currentOrderId}`;
-            document.getElementById('amountInfo').textContent = `Rp ${Number(amount).toLocaleString('id-ID')}`;
-            document.getElementById('methodInfo').textContent = method;
+            // Get URL parameters
+            const params = new URLSearchParams(window.location.search);
+            paymentId = params.get('payment_id');
+            orderId = params.get('order_id');
+            const amount = params.get('amount');
+            const method = params.get('method');
 
-            // Setup PIN input behavior
-            setupPinInputs();
-        });
+            if (!paymentId || !orderId) {
+                showError('Parameter tidak valid. Silakan kembali dan coba lagi.');
+                return;
+            }
 
-        function setupPinInputs() {
-            const pinInputs = document.querySelectorAll('.pin-digit');
-            
-            pinInputs.forEach((input, index) => {
-                input.addEventListener('input', function(e) {
-                    if (e.target.value.length === 1 && index < pinInputs.length - 1) {
-                        pinInputs[index + 1].focus();
-                    }
-                });
-
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
-                        pinInputs[index - 1].focus();
-                    }
-                });
-            });
+            // Display payment info
+            document.getElementById('orderId').textContent = '#' + orderId;
+            document.getElementById('paymentMethod').textContent = formatMethod(method);
+            document.getElementById('totalAmount').textContent = 'Rp ' + Number(amount).toLocaleString('id-ID');
         }
 
-        document.getElementById('pinForm').addEventListener('submit', async function(e) {
+        function formatMethod(method) {
+            const methods = {
+                'transfer_bank': 'Transfer Bank',
+                'e_wallet': 'E-Wallet',
+                'cod': 'Bayar di Tempat (COD)'
+            };
+            return methods[method] || method || '-';
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('active');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('active');
+        }
+
+        function showLoading() {
+            document.getElementById('formSection').style.display = 'none';
+            document.getElementById('loadingSection').classList.add('active');
+        }
+
+        function showSuccess() {
+            document.getElementById('loadingSection').classList.remove('active');
+            document.getElementById('successSection').classList.add('active');
+        }
+
+        function redirectToDashboard() {
+            window.location.href = 'dashboard-pembeli.html?payment_success=true';
+        }
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            // Get PIN value
-            const pin = Array.from(document.querySelectorAll('.pin-digit'))
-                .map(input => input.value)
-                .join('');
+            hideError();
 
-            if (pin.length !== 6) {
-                alert('Mohon masukkan PIN 6 digit');
+            const code = document.getElementById('verificationCode').value.trim();
+
+            // Demo: accept code 123456
+            if (code !== '123456') {
+                showError('Kode verifikasi tidak valid. Gunakan kode: 123456');
                 return;
             }
 
-            // Simulate PIN validation (dummy - any 6 digits work)
-            if (!/^\d{6}$/.test(pin)) {
-                alert('PIN harus berupa 6 digit angka');
-                return;
-            }
-
-            // Show loading
-            document.getElementById('authForm').style.display = 'none';
-            document.getElementById('loadingState').style.display = 'block';
+            showLoading();
 
             try {
-                // Simulate processing delay
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                // Call payment confirmation API
-                const token = localStorage.getItem('auth_token');
-                if (!token) {
-                    throw new Error('Token tidak ditemukan. Silakan login kembali.');
-                }
-
-                const response = await fetch(`${API_BASE}/payments/${currentPaymentId}/confirm`, {
+                // Confirm payment
+                const resp = await API.authFetch(`/payments/${paymentId}/confirm`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ verification_code: code })
                 });
 
-                if (response.ok) {
-                    // Show success
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('successState').style.display = 'block';
+                if (resp.ok) {
+                    setTimeout(showSuccess, 1500);
                 } else {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || 'Konfirmasi pembayaran gagal');
+                    const error = await resp.json();
+                    document.getElementById('formSection').style.display = 'block';
+                    document.getElementById('loadingSection').classList.remove('active');
+                    showError(error.message || 'Gagal mengkonfirmasi pembayaran.');
                 }
-
-            } catch (error) {
-                console.error('Payment confirmation error:', error);
-                document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('authForm').style.display = 'block';
-                alert(`Pembayaran gagal: ${error.message}. Silakan coba lagi.`);
+            } catch (e) {
+                document.getElementById('formSection').style.display = 'block';
+                document.getElementById('loadingSection').classList.remove('active');
+                showError('Terjadi kesalahan jaringan. Silakan coba lagi.');
             }
         });
 
-        function cancelPayment() {
-            if (confirm('Apakah Anda yakin ingin membatalkan pembayaran?')) {
-                window.history.back();
-            }
-        }
-
-        function redirectToOrder() {
-            // Check if coming from checkout or dashboard
-            const urlParams = new URLSearchParams(window.location.search);
-            const fromCheckout = urlParams.get('from') === 'checkout';
-            
-            if (fromCheckout) {
-                // If from checkout, redirect to success page
-                window.location.href = 'pembayaran-berhasil.html';
-            } else {
-                // If from dashboard, redirect back to dashboard with success parameter
-                window.location.href = `dashboard-pembeli.html?payment_success=true`;
-            }
-        }
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
+
 </html>

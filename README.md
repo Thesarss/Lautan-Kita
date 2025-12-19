@@ -6,7 +6,6 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-blue.svg)](https://www.mysql.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **🚀 New here?** Start with **[START-HERE.md](START-HERE.md)** for a quick 5-minute setup guide!  
 > **📚 Complete Documentation:** See **[MASTER-DOCUMENTATION.md](MASTER-DOCUMENTATION.md)** for all-in-one docs!
 
 ---
@@ -21,7 +20,7 @@ mysql -u root toko_online < toko_online.sql
 cd backend
 npm install
 cp .env.example .env
-npm start
+node src/app.js
 
 # 3. Buat admin
 node create-admin.js
@@ -45,20 +44,20 @@ Password : Admin123456
 - Keranjang belanja
 - Checkout & pembayaran
 - Tracking pesanan real-time
-- Upload bukti transfer
+- Lihat lokasi kurir
 
 ### 🐟 Untuk Penjual/Nelayan
 - Kelola produk (CRUD)
 - Upload foto produk
 - Statistik penjualan
 - Lihat pesanan masuk
-- Filter & search produk
+- Auto-assign kurir
 
 ### 🚚 Untuk Kurir
 - Lihat daftar pengiriman
-- Update status pengiriman
-- Input nomor resi
-- **Privasi:** Hanya lihat alamat tujuan
+- Update lokasi terakhir
+- Verifikasi pesanan sampai
+- Riwayat pengiriman
 
 ### 👑 Untuk Admin
 - Kelola semua user
@@ -70,26 +69,16 @@ Password : Admin123456
 
 ## 🛠 Teknologi
 
-**Backend:**
-- Node.js + Express
-- MySQL (XAMPP)
-- JWT Authentication
-- bcrypt Password Hashing
-
-**Frontend:**
-- HTML5/CSS3/JavaScript
-- Responsive Design
-- Modal System
-- API Helper
+**Backend:** Node.js + Express + MySQL + JWT + bcrypt  
+**Frontend:** HTML5 + CSS3 + JavaScript  
+**Database:** MySQL (XAMPP)
 
 ---
 
 ## 📚 Dokumentasi
 
-### 📖 Dokumentasi Lengkap
-
-**🌟 MASTER DOCUMENTATION (All-in-One):**  
-**[MASTER-DOCUMENTATION.md](MASTER-DOCUMENTATION.md)** - Semua dokumentasi dalam satu file!
+**🌟 Semua dokumentasi dalam satu file:**  
+**[MASTER-DOCUMENTATION.md](MASTER-DOCUMENTATION.md)**
 
 Berisi:
 - Quick Start (5 menit)
@@ -98,150 +87,22 @@ Berisi:
 - Dashboard system lengkap
 - Admin panel features
 - Tracking & lokasi real-time
-- API endpoints lengkap
-- Testing guide
+- API endpoints lengkap (30+)
+- Testing guide (8 scenarios)
 - Troubleshooting
 - Project structure
 - Update history
-
-### 📁 Dokumentasi Lainnya
-
-| File | Deskripsi |
-|------|-----------|
-| [`docs/QUICK-START.md`](docs/QUICK-START.md) | Panduan cepat memulai |
-| [`docs/DASHBOARD-SYSTEM-README.md`](docs/DASHBOARD-SYSTEM-README.md) | Sistem dashboard per role |
-| [`docs/ADMIN-PANEL-FEATURES.md`](docs/ADMIN-PANEL-FEATURES.md) | Fitur admin panel |
-| [`docs/CARA-MEMBUAT-ADMIN.md`](docs/CARA-MEMBUAT-ADMIN.md) | Cara membuat akun admin |
-| [`docs/TROUBLESHOOT-LOGIN-ADMIN.md`](docs/TROUBLESHOOT-LOGIN-ADMIN.md) | Troubleshoot login admin |
 
 ---
 
 ## 👥 Role & Permission
 
-| Role | Dashboard | Kelola Produk | Lihat Pesanan | Lihat Alamat | Admin Access |
-|------|-----------|---------------|---------------|--------------|--------------|
-| **Pembeli** | ✅ | ❌ | ✅ (sendiri) | ✅ (sendiri) | ❌ |
-| **Penjual** | ✅ | ✅ (miliknya) | ✅ (produknya) | ❌ | ❌ |
-| **Kurir** | ✅ | ❌ | ✅ (pengiriman) | ✅ (tujuan) | ❌ |
-| **Admin** | ✅ | ✅ (semua) | ✅ (semua) | ✅ (semua) | ✅ |
-
----
-
-## 📦 Instalasi
-
-### Prerequisites
-- Node.js v14+
-- MySQL 8.0+ (XAMPP)
-- Browser modern
-
-### Setup Database
-
-```bash
-# Start XAMPP MySQL
-# Import database
-mysql -u root toko_online < toko_online.sql
-```
-
-### Setup Backend
-
-```bash
-cd backend
-npm install
-
-# Copy dan edit .env
-cp .env.example .env
-
-# Start server
-npm start
-```
-
-Expected output:
-```
-Server listening on 4000
-Database connected
-Added produk.kategori column
-Added produk.satuan column
-```
-
-### Setup Frontend
-
-Buka dengan Live Server atau langsung:
-```
-http://localhost:3000/home_final.html
-```
-
----
-
-## 🔐 Membuat Admin
-
-### Via Script (Recommended)
-
-```bash
-node backend/create-admin.js
-```
-
-### Via Web
-
-1. Buka: `http://localhost:3000/registrasi-admin.html`
-2. Secret Key: `LAUTAN_KITA_ADMIN_2025`
-3. Isi form dan submit
-
-### Verifikasi
-
-```bash
-node backend/check-admin.js
-```
-
----
-
-## 🎯 Testing
-
-### Test Flow Pembeli
-1. Register sebagai pembeli
-2. Login
-3. Tambah produk ke keranjang
-4. Checkout
-5. Upload bukti transfer
-6. Tracking pesanan
-
-### Test Flow Penjual
-1. Register sebagai penjual
-2. Login → Dashboard
-3. Tambah produk dengan foto
-4. Edit stok produk
-5. Lihat pesanan masuk
-
-### Test Flow Admin
-1. Login sebagai admin
-2. Kelola user (edit, verify)
-3. Lihat laporan transaksi
-4. Export CSV
-5. Moderasi ulasan
-
----
-
-## 🐛 Troubleshooting
-
-### Backend tidak start
-```bash
-# Cek port 4000
-netstat -ano | findstr :4000
-
-# Kill process jika perlu
-taskkill /PID <PID> /F
-```
-
-### Database error
-1. Pastikan XAMPP MySQL running
-2. Cek kredensial di `backend/.env`
-3. Import `toko_online.sql`
-
-### Login gagal
-1. Cek email/password (case-sensitive)
-2. Cek token di localStorage (F12)
-3. Pastikan backend running
-
-**Lihat troubleshooting lengkap:** [`docs/TROUBLESHOOT-LOGIN-ADMIN.md`](docs/TROUBLESHOOT-LOGIN-ADMIN.md)
+| Role | Beli | Jual | Kirim | Admin |
+|------|------|------|-------|-------|
+| **Pembeli** | ✅ | ❌ | ❌ | ❌ |
+| **Penjual** | ❌ | ✅ | ❌ | ❌ |
+| **Kurir** | ❌ | ❌ | ✅ | ❌ |
+| **Admin** | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -251,15 +112,16 @@ taskkill /PID <PID> /F
 lautan-kita/
 ├── backend/              # Node.js backend
 │   ├── src/             # Source code
+│   │   ├── routes/      # API routes
+│   │   └── middleware/  # Auth middleware
 │   ├── uploads/         # Upload files
 │   └── .env             # Config
-├── assets/              # Frontend assets
+├── assets/js/           # Frontend JS
 ├── img/                 # Images
-├── views/               # Additional pages
-├── docs/                # Documentation
-├── archive/             # Old files
 ├── *.html               # Main pages
-└── toko_online.sql      # Database schema
+├── toko_online.sql      # Database schema
+├── README.md            # This file
+└── MASTER-DOCUMENTATION.md  # Complete docs
 ```
 
 ---
@@ -267,83 +129,65 @@ lautan-kita/
 ## 🔌 API Endpoints
 
 ### Authentication
-```
-POST   /auth/register
-POST   /auth/login
-GET    /auth/me
-```
+- `POST /auth/register` - Register user
+- `POST /auth/login` - Login
+- `GET /auth/me` - Get user info
 
 ### Products
-```
-GET    /products
-POST   /penjual/produk
-PATCH  /penjual/produk/:id
-```
+- `GET /products` - List products
+- `POST /penjual/produk` - Add product
+- `PATCH /penjual/produk/:id` - Update product
 
 ### Orders
-```
-POST   /orders/checkout
-GET    /orders
-POST   /orders/:id/cancel
-```
+- `POST /orders/checkout` - Checkout
+- `GET /orders/my-orders` - My orders
+- `PATCH /orders/:id/pack` - Pack order (penjual)
+- `PATCH /orders/:id/ship` - Ship order (kurir)
+
+### Kurir
+- `GET /kurir/deliveries` - Get deliveries
+- `PATCH /kurir/orders/:id/location` - Update location
+- `PATCH /kurir/orders/:id/delivered` - Verify delivered
 
 ### Admin
-```
-GET    /admin/users
-PATCH  /admin/users/:id
-GET    /admin/transactions
-GET    /admin/reviews
-```
+- `GET /admin/users` - List users
+- `PATCH /admin/users/:id` - Edit user
+- `GET /admin/transactions` - Transactions
+- `GET /admin/reviews` - Reviews
 
-**Lihat API lengkap:** [`docs/COMPLETE-DOCUMENTATION.md#api-endpoints`](docs/COMPLETE-DOCUMENTATION.md#-api-endpoints)
+**Lihat API lengkap:** [MASTER-DOCUMENTATION.md](MASTER-DOCUMENTATION.md#-api-endpoints)
 
 ---
 
-## 📝 Changelog
+## 📝 Version History
 
-### Version 1.0.0 (10 Desember 2025)
+### v1.3.0 (December 15, 2025)
+- ✅ Laporan Penjualan untuk Penjual
+- ✅ Rating & Ulasan Produk untuk Pembeli
+- ✅ Statistik rating toko
 
-**Added:**
+### v1.2.0 (December 11, 2025)
+- ✅ Tracking lokasi real-time
+- ✅ Kurir update lokasi & verifikasi sampai
+- ✅ Auto-assign kurir (round-robin)
+- ✅ Admin restrictions
+
+### v1.0.0 (December 10, 2025)
+- ✅ Initial release
 - ✅ Dashboard role-based
 - ✅ Admin panel lengkap
-- ✅ Laporan transaksi & export CSV
-- ✅ Moderasi ulasan
-- ✅ Upload foto produk
-- ✅ Kurir privacy mode
-
-**Fixed:**
-- ✅ Role kurir registration
-- ✅ Admin login issues
-- ✅ Password validation
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our contributing guidelines first.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 👨‍💻 Team
-
-**Lautan Kita Development Team**
+- ✅ Checkout & payment
 
 ---
 
 ## 📞 Support
 
-- 📚 Documentation: [`docs/`](docs/)
-- 🐛 Issues: Create an issue
-- 💬 Contact: [email@example.com](mailto:email@example.com)
+- **Documentation:** [MASTER-DOCUMENTATION.md](MASTER-DOCUMENTATION.md)
+- **Email:** lautankita@gmail.com
+- **Phone:** +62 811 1234 5678
 
 ---
 
 **Made with ❤️ by Lautan Kita Team**
 
-Last Updated: 10 Desember 2025
+**Last Updated:** December 15, 2025 | **Version:** 1.3.0
