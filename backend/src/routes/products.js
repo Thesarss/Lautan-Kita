@@ -348,13 +348,37 @@ router.delete('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
 // Penjual: Get sales report
 router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req, res) => {
   const conn = await pool.getConnection();
+  const { month, year, from, to } = req.query;
+  
   try {
-    // Get sales summary per product
+    // Build date condition
+    let dateCondition = '';
+    const dateParams = [];
+    
+    if (month && year) {
+      dateCondition = 'AND MONTH(ps.created_at) = ? AND YEAR(ps.created_at) = ?';
+      dateParams.push(parseInt(month), parseInt(year));
+    } else if (year) {
+      dateCondition = 'AND YEAR(ps.created_at) = ?';
+      dateParams.push(parseInt(year));
+    } else if (from && to) {
+      dateCondition = 'AND DATE(ps.created_at) >= ? AND DATE(ps.created_at) <= ?';
+      dateParams.push(from, to);
+    } else if (from) {
+      dateCondition = 'AND DATE(ps.created_at) >= ?';
+      dateParams.push(from);
+    } else if (to) {
+      dateCondition = 'AND DATE(ps.created_at) <= ?';
+      dateParams.push(to);
+    }
+    
+    // Get sales summary per product with date filter (including HPP/modal)
     const [productSales] = await conn.query(`
       SELECT 
-        p.produk_id, p.nama_produk, p.harga, p.stok, p.photo_url,
+        p.produk_id, p.nama_produk, p.harga, p.harga_modal, p.stok, p.photo_url,
         COALESCE(SUM(CASE WHEN ps.status_pesanan = 'selesai' THEN pi.jumlah ELSE 0 END), 0) as total_terjual,
         COALESCE(SUM(CASE WHEN ps.status_pesanan = 'selesai' THEN pi.subtotal ELSE 0 END), 0) as total_pendapatan,
+        COALESCE(SUM(CASE WHEN ps.status_pesanan = 'selesai' THEN (COALESCE(p.harga_modal, 0) * pi.jumlah) ELSE 0 END), 0) as total_modal,
         COUNT(DISTINCT CASE WHEN ps.status_pesanan = 'selesai' THEN ps.pesanan_id END) as jumlah_transaksi,
         COALESCE(AVG(u.rating), 0) as avg_rating,
         COUNT(u.ulasan_id) as total_ulasan
@@ -362,37 +386,62 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       LEFT JOIN pesanan_item pi ON pi.produk_id = p.produk_id
       LEFT JOIN pesanan ps ON ps.pesanan_id = pi.pesanan_id
       LEFT JOIN ulasan u ON u.produk_id = p.produk_id AND u.status = 'aktif'
-      WHERE p.penjual_id = ? AND p.deleted_at IS NULL
+      WHERE p.penjual_id = ? AND p.deleted_at IS NULL ${dateCondition}
       GROUP BY p.produk_id
       ORDER BY total_pendapatan DESC
-    `, [req.user.id]);
+    `, [req.user.id, ...dateParams]);
 
-    // Get overall stats - sum from productSales for consistency
+    // Calculate overall stats with profit/loss
     const totalPendapatan = productSales.reduce((sum, p) => sum + Number(p.total_pendapatan || 0), 0);
+    const totalModal = productSales.reduce((sum, p) => sum + Number(p.total_modal || 0), 0);
     const totalTerjual = productSales.reduce((sum, p) => sum + Number(p.total_terjual || 0), 0);
     const totalTransaksi = productSales.reduce((sum, p) => sum + Number(p.jumlah_transaksi || 0), 0);
+    const labaKotor = totalPendapatan - totalModal;
+    const marginPersen = totalPendapatan > 0 ? ((labaKotor / totalPendapatan) * 100).toFixed(1) : 0;
 
-    const overallStats = [{
+    const overallStats = {
       total_pendapatan: totalPendapatan,
+      total_modal: totalModal,
+      laba_kotor: labaKotor,
+      margin_persen: marginPersen,
       total_terjual: totalTerjual,
       total_transaksi: totalTransaksi
-    }];
+    };
 
-    // Get monthly sales (last 6 months)
-    const [monthlySales] = await conn.query(`
+    // Get monthly sales with profit/loss
+    let monthlyQuery = `
       SELECT 
-        DATE_FORMAT(ps.tanggal_selesai, '%Y-%m') as bulan,
+        DATE_FORMAT(ps.created_at, '%Y-%m') as bulan,
         SUM(pi.subtotal) as pendapatan,
-        SUM(pi.jumlah) as jumlah_terjual
+        SUM(COALESCE(p.harga_modal, 0) * pi.jumlah) as modal,
+        SUM(pi.jumlah) as jumlah_terjual,
+        COUNT(DISTINCT ps.pesanan_id) as jumlah_transaksi
       FROM pesanan_item pi
       JOIN pesanan ps ON ps.pesanan_id = pi.pesanan_id
       JOIN produk p ON p.produk_id = pi.produk_id
       WHERE p.penjual_id = ? 
         AND ps.status_pesanan = 'selesai'
-        AND ps.tanggal_selesai >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-      GROUP BY DATE_FORMAT(ps.tanggal_selesai, '%Y-%m')
+    `;
+    
+    if (year && !month) {
+      monthlyQuery += ' AND YEAR(ps.created_at) = ?';
+    } else if (!dateCondition) {
+      monthlyQuery += ' AND ps.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)';
+    }
+    
+    monthlyQuery += `
+      GROUP BY DATE_FORMAT(ps.created_at, '%Y-%m')
       ORDER BY bulan DESC
-    `, [req.user.id]);
+    `;
+    
+    const monthlyParams = year && !month ? [req.user.id, parseInt(year)] : [req.user.id];
+    const [monthlySales] = await conn.query(monthlyQuery, monthlyParams);
+    
+    // Add laba calculation to monthly
+    const monthlyWithProfit = monthlySales.map(m => ({
+      ...m,
+      laba: Number(m.pendapatan || 0) - Number(m.modal || 0)
+    }));
 
     // Get average rating for seller
     const [sellerRating] = await conn.query(`
@@ -403,12 +452,59 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       JOIN produk p ON p.produk_id = u.produk_id
       WHERE p.penjual_id = ? AND u.status = 'aktif'
     `, [req.user.id]);
+    
+    // Get daily sales with profit/loss
+    const [dailySales] = await conn.query(`
+      SELECT 
+        DATE(ps.created_at) as tanggal,
+        SUM(pi.subtotal) as pendapatan,
+        SUM(COALESCE(p.harga_modal, 0) * pi.jumlah) as modal,
+        SUM(pi.jumlah) as jumlah_terjual,
+        COUNT(DISTINCT ps.pesanan_id) as jumlah_transaksi
+      FROM pesanan_item pi
+      JOIN pesanan ps ON ps.pesanan_id = pi.pesanan_id
+      JOIN produk p ON p.produk_id = pi.produk_id
+      WHERE p.penjual_id = ? 
+        AND ps.status_pesanan = 'selesai'
+        ${dateCondition}
+      GROUP BY DATE(ps.created_at)
+      ORDER BY tanggal DESC
+      LIMIT 31
+    `, [req.user.id, ...dateParams]);
+    
+    // Add laba calculation to daily
+    const dailyWithProfit = dailySales.map(d => ({
+      ...d,
+      laba: Number(d.pendapatan || 0) - Number(d.modal || 0)
+    }));
+    
+    // Get available years for filter
+    const [availableYears] = await conn.query(`
+      SELECT DISTINCT YEAR(ps.created_at) as tahun
+      FROM pesanan ps
+      JOIN pesanan_item pi ON pi.pesanan_id = ps.pesanan_id
+      JOIN produk p ON p.produk_id = pi.produk_id
+      WHERE p.penjual_id = ? AND ps.status_pesanan = 'selesai'
+      ORDER BY tahun DESC
+    `, [req.user.id]);
+    
+    // Add profit calculation to products
+    const productsWithProfit = productSales.map(p => ({
+      ...p,
+      laba: Number(p.total_pendapatan || 0) - Number(p.total_modal || 0),
+      margin_persen: Number(p.total_pendapatan) > 0 
+        ? (((Number(p.total_pendapatan) - Number(p.total_modal)) / Number(p.total_pendapatan)) * 100).toFixed(1)
+        : 0
+    }));
 
     res.json({
-      products: productSales,
-      overall: overallStats[0],
-      monthly: monthlySales,
-      rating: sellerRating[0]
+      products: productsWithProfit,
+      overall: overallStats,
+      monthly: monthlyWithProfit,
+      daily: dailyWithProfit,
+      rating: sellerRating[0],
+      availableYears: availableYears.map(y => y.tahun),
+      period: { month, year, from, to }
     });
   } finally {
     conn.release();

@@ -419,6 +419,202 @@ router.get('/admin/reports/payouts', requireAuth, requireRole(['admin']), [
   }
 });
 
+// Admin: Laporan Keuangan dengan filter per bulan/tahun
+router.get('/admin/reports/financial', requireAuth, requireRole(['admin']), [
+  query('month').optional().isInt({ min: 1, max: 12 }),
+  query('year').optional().isInt({ min: 2020, max: 2100 }),
+  query('from').optional().isISO8601(),
+  query('to').optional().isISO8601()
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  
+  const { month, year, from, to } = req.query;
+  const conn = await pool.getConnection();
+  
+  try {
+    let dateCondition = '';
+    const params = [];
+    
+    // Build date condition
+    if (month && year) {
+      dateCondition = 'AND MONTH(ps.created_at) = ? AND YEAR(ps.created_at) = ?';
+      params.push(parseInt(month), parseInt(year));
+    } else if (year) {
+      dateCondition = 'AND YEAR(ps.created_at) = ?';
+      params.push(parseInt(year));
+    } else if (from && to) {
+      dateCondition = 'AND DATE(ps.created_at) >= ? AND DATE(ps.created_at) <= ?';
+      params.push(from, to);
+    } else if (from) {
+      dateCondition = 'AND DATE(ps.created_at) >= ?';
+      params.push(from);
+    } else if (to) {
+      dateCondition = 'AND DATE(ps.created_at) <= ?';
+      params.push(to);
+    }
+    
+    // Get transaction summary
+    const [summary] = await conn.query(`
+      SELECT 
+        COUNT(DISTINCT ps.pesanan_id) as total_transaksi,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN ps.total_harga ELSE 0 END), 0) as total_pendapatan,
+        COUNT(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN 1 END) as transaksi_berhasil,
+        COUNT(CASE WHEN pb.status_pembayaran = 'belum_dibayar' THEN 1 END) as transaksi_pending,
+        COUNT(CASE WHEN pb.status_pembayaran = 'gagal' THEN 1 END) as transaksi_gagal
+      FROM pesanan ps
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE 1=1 ${dateCondition}
+    `, params);
+    
+    // Get monthly breakdown
+    const [monthly] = await conn.query(`
+      SELECT 
+        DATE_FORMAT(ps.created_at, '%Y-%m') as bulan,
+        COUNT(DISTINCT ps.pesanan_id) as jumlah_transaksi,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN ps.total_harga ELSE 0 END), 0) as pendapatan,
+        COUNT(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN 1 END) as berhasil,
+        COUNT(CASE WHEN pb.status_pembayaran = 'belum_dibayar' THEN 1 END) as pending,
+        COUNT(CASE WHEN pb.status_pembayaran = 'gagal' THEN 1 END) as gagal
+      FROM pesanan ps
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE 1=1 ${dateCondition}
+      GROUP BY DATE_FORMAT(ps.created_at, '%Y-%m')
+      ORDER BY bulan DESC
+    `, params);
+    
+    // Get daily breakdown (for current period)
+    const [daily] = await conn.query(`
+      SELECT 
+        DATE(ps.created_at) as tanggal,
+        COUNT(DISTINCT ps.pesanan_id) as jumlah_transaksi,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN ps.total_harga ELSE 0 END), 0) as pendapatan
+      FROM pesanan ps
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE 1=1 ${dateCondition}
+      GROUP BY DATE(ps.created_at)
+      ORDER BY tanggal DESC
+      LIMIT 31
+    `, params);
+    
+    // Get top sellers
+    const [topSellers] = await conn.query(`
+      SELECT 
+        u.user_id, u.nama as penjual_nama,
+        COUNT(DISTINCT ps.pesanan_id) as jumlah_transaksi,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN pi.subtotal ELSE 0 END), 0) as total_penjualan
+      FROM user u
+      JOIN produk p ON p.penjual_id = u.user_id
+      JOIN pesanan_item pi ON pi.produk_id = p.produk_id
+      JOIN pesanan ps ON ps.pesanan_id = pi.pesanan_id
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE u.role = 'penjual' ${dateCondition}
+      GROUP BY u.user_id
+      ORDER BY total_penjualan DESC
+      LIMIT 10
+    `, params);
+    
+    // Get top products
+    const [topProducts] = await conn.query(`
+      SELECT 
+        p.produk_id, p.nama_produk,
+        u.nama as penjual_nama,
+        SUM(pi.jumlah) as total_terjual,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN pi.subtotal ELSE 0 END), 0) as total_pendapatan
+      FROM produk p
+      JOIN pesanan_item pi ON pi.produk_id = p.produk_id
+      JOIN pesanan ps ON ps.pesanan_id = pi.pesanan_id
+      JOIN user u ON u.user_id = p.penjual_id
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE 1=1 ${dateCondition}
+      GROUP BY p.produk_id
+      ORDER BY total_pendapatan DESC
+      LIMIT 10
+    `, params);
+    
+    // Get payment method breakdown
+    const [paymentMethods] = await conn.query(`
+      SELECT 
+        COALESCE(pb.metode, 'Tidak Diketahui') as metode,
+        COUNT(*) as jumlah,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN ps.total_harga ELSE 0 END), 0) as total
+      FROM pesanan ps
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE 1=1 ${dateCondition}
+      GROUP BY pb.metode
+      ORDER BY total DESC
+    `, params);
+    
+    res.json({
+      summary: summary[0],
+      monthly,
+      daily,
+      topSellers,
+      topProducts,
+      paymentMethods,
+      period: { month, year, from, to }
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// Admin: Get yearly report
+router.get('/admin/reports/yearly', requireAuth, requireRole(['admin']), [
+  query('year').optional().isInt({ min: 2020, max: 2100 })
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ error: 'validation_error', details: errors.array() });
+  
+  const year = req.query.year || new Date().getFullYear();
+  const conn = await pool.getConnection();
+  
+  try {
+    // Get monthly data for the year
+    const [monthlyData] = await conn.query(`
+      SELECT 
+        MONTH(ps.created_at) as bulan,
+        COUNT(DISTINCT ps.pesanan_id) as jumlah_transaksi,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN ps.total_harga ELSE 0 END), 0) as pendapatan,
+        COUNT(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN 1 END) as berhasil,
+        COUNT(CASE WHEN pb.status_pembayaran = 'belum_dibayar' THEN 1 END) as pending,
+        COUNT(CASE WHEN pb.status_pembayaran = 'gagal' THEN 1 END) as gagal
+      FROM pesanan ps
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE YEAR(ps.created_at) = ?
+      GROUP BY MONTH(ps.created_at)
+      ORDER BY bulan ASC
+    `, [year]);
+    
+    // Get yearly summary
+    const [yearlySummary] = await conn.query(`
+      SELECT 
+        COUNT(DISTINCT ps.pesanan_id) as total_transaksi,
+        COALESCE(SUM(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN ps.total_harga ELSE 0 END), 0) as total_pendapatan,
+        COUNT(CASE WHEN pb.status_pembayaran = 'sudah_dibayar' THEN 1 END) as transaksi_berhasil
+      FROM pesanan ps
+      LEFT JOIN pembayaran pb ON pb.pesanan_id = ps.pesanan_id
+      WHERE YEAR(ps.created_at) = ?
+    `, [year]);
+    
+    // Get available years
+    const [availableYears] = await conn.query(`
+      SELECT DISTINCT YEAR(created_at) as tahun 
+      FROM pesanan 
+      ORDER BY tahun DESC
+    `);
+    
+    res.json({
+      year: parseInt(year),
+      summary: yearlySummary[0],
+      monthly: monthlyData,
+      availableYears: availableYears.map(y => y.tahun)
+    });
+  } finally {
+    conn.release();
+  }
+});
+
 router.get('/admin/reviews', requireAuth, requireRole(['admin']), [
   query('status').optional().isIn(['aktif', 'disembunyikan']),
   query('q').optional().isString().trim()

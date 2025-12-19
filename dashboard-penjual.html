@@ -601,26 +601,88 @@
         <div class="card" id="reportView" style="display:none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #0077B6; margin: 0;"><i class="fas fa-chart-bar"></i> Laporan Penjualan</h3>
-                <button class="btn btn-primary" onclick="exportLaporanPDF()" style="background: #EF4444;">
-                    <i class="fas fa-file-pdf"></i> Export PDF
-                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="exportLaporanCSV()" style="background: #10B981;">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="exportLaporanPDF()" style="background: #EF4444;">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-bottom: 12px; color: #0077B6;"><i class="fas fa-filter"></i> Filter Laporan</h4>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                    <div>
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block; font-size: 13px;">Bulan:</label>
+                        <select id="reportFilterMonth" class="filter-bar" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; min-width: 150px;">
+                            <option value="">Semua Bulan</option>
+                            <option value="1">Januari</option>
+                            <option value="2">Februari</option>
+                            <option value="3">Maret</option>
+                            <option value="4">April</option>
+                            <option value="5">Mei</option>
+                            <option value="6">Juni</option>
+                            <option value="7">Juli</option>
+                            <option value="8">Agustus</option>
+                            <option value="9">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11">November</option>
+                            <option value="12">Desember</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; margin-bottom: 5px; display: block; font-size: 13px;">Tahun:</label>
+                        <select id="reportFilterYear" class="filter-bar" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; min-width: 120px;">
+                            <option value="">Semua Tahun</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadSalesReportFiltered()">
+                        <i class="fas fa-search"></i> Terapkan Filter
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetReportFilter()">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+                <!-- Period Display -->
+                <div id="reportPeriodDisplay" style="margin-top: 12px; padding: 10px; background: #DBEAFE; border-radius: 8px; display: none;">
+                    <i class="fas fa-info-circle" style="color: #0077B6;"></i>
+                    <span id="reportPeriodText" style="font-weight: 500; color: #1E40AF;"></span>
+                </div>
+            </div>
+
+            <!-- Ringkasan Laba Rugi -->
+            <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                <h4 style="margin-bottom: 16px; color: #0077B6;"><i class="fas fa-chart-pie"></i> Laporan Laba Rugi</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div style="background: linear-gradient(135deg, #0077B6, #00A8E8); padding: 16px; border-radius: 10px; color: white;">
+                        <div style="font-size: 13px; opacity: 0.9;"><i class="fas fa-coins"></i> Total Pendapatan</div>
+                        <div id="reportTotalPendapatan" style="font-size: 22px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #EF4444, #F87171); padding: 16px; border-radius: 10px; color: white;">
+                        <div style="font-size: 13px; opacity: 0.9;"><i class="fas fa-box"></i> Total Modal (HPP)</div>
+                        <div id="reportTotalModal" style="font-size: 22px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #10B981, #34D399); padding: 16px; border-radius: 10px; color: white;">
+                        <div style="font-size: 13px; opacity: 0.9;"><i class="fas fa-chart-line"></i> Laba Kotor</div>
+                        <div id="reportLabaKotor" style="font-size: 22px; font-weight: 700; margin-top: 8px;">Rp 0</div>
+                        <div id="reportMarginPersen" style="font-size: 12px; opacity: 0.9; margin-top: 4px;">Margin: 0%</div>
+                    </div>
+                </div>
             </div>
 
             <div class="stats" style="margin-bottom: 24px;">
-                <div class="stat-card" style="background: linear-gradient(135deg, #0077B6, #00A8E8);">
-                    <div class="icon" style="color: white;"><i class="fas fa-money-bill-wave"></i></div>
-                    <div class="value" id="reportTotalPendapatan" style="color: white;">Rp 0</div>
-                    <div class="label" style="color: rgba(255,255,255,0.8);">Total Pendapatan</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #10B981, #34D399);">
-                    <div class="icon" style="color: white;"><i class="fas fa-shopping-bag"></i></div>
-                    <div class="value" id="reportTotalTerjual" style="color: white;">0</div>
-                    <div class="label" style="color: rgba(255,255,255,0.8);">Total Produk Terjual</div>
-                </div>
                 <div class="stat-card" style="background: linear-gradient(135deg, #8B5CF6, #A78BFA);">
                     <div class="icon" style="color: white;"><i class="fas fa-receipt"></i></div>
                     <div class="value" id="reportTotalTransaksi" style="color: white;">0</div>
                     <div class="label" style="color: rgba(255,255,255,0.8);">Total Transaksi</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #F59E0B, #FBBF24);">
+                    <div class="icon" style="color: white;"><i class="fas fa-shopping-bag"></i></div>
+                    <div class="value" id="reportTotalTerjual" style="color: white;">0</div>
+                    <div class="label" style="color: rgba(255,255,255,0.8);">Total Produk Terjual</div>
                 </div>
             </div>
 
@@ -632,8 +694,7 @@
                 </div>
             </div>
 
-            <h4 style="margin: 24px 0 16px; color: #07304A;"><i class="fas fa-calendar-alt"></i> Penjualan 6 Bulan
-                Terakhir</h4>
+            <h4 style="margin: 24px 0 16px; color: #07304A;"><i class="fas fa-calendar-alt"></i> Penjualan Bulanan</h4>
             <div id="monthlySalesContainer">
                 <div class="empty-state">
                     <i class="fas fa-calendar"></i>
@@ -1386,25 +1447,207 @@
             }
         }
 
-        // Load sales report
+        // Sales report data storage
+        let salesReportData = null;
+        const monthNamesID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+        // Initialize year filter for report
+        function initReportYearFilter(availableYears) {
+            const yearSelect = document.getElementById('reportFilterYear');
+            if (!yearSelect) return;
+            
+            const currentYear = new Date().getFullYear();
+            const years = availableYears && availableYears.length > 0 
+                ? [...new Set([currentYear, ...availableYears])].sort((a, b) => b - a)
+                : [currentYear, currentYear - 1, currentYear - 2];
+            
+            yearSelect.innerHTML = '<option value="">Semua Tahun</option>' + 
+                years.map(y => `<option value="${y}">${y}</option>`).join('');
+        }
+
+        // Load sales report with filter
+        async function loadSalesReportFiltered() {
+            const month = document.getElementById('reportFilterMonth')?.value;
+            const year = document.getElementById('reportFilterYear')?.value;
+            
+            // Build query params
+            const params = new URLSearchParams();
+            if (month) params.append('month', month);
+            if (year) params.append('year', year);
+            
+            try {
+                const resp = await API.authFetch(`/penjual/laporan?${params.toString()}`);
+                if (!resp.ok) throw new Error('Failed to load report');
+                salesReportData = await resp.json();
+
+                // Update laba rugi stats
+                document.getElementById('reportTotalPendapatan').textContent = `Rp ${Number(salesReportData.overall.total_pendapatan).toLocaleString('id-ID')}`;
+                document.getElementById('reportTotalModal').textContent = `Rp ${Number(salesReportData.overall.total_modal || 0).toLocaleString('id-ID')}`;
+                document.getElementById('reportLabaKotor').textContent = `Rp ${Number(salesReportData.overall.laba_kotor || 0).toLocaleString('id-ID')}`;
+                document.getElementById('reportMarginPersen').textContent = `Margin: ${salesReportData.overall.margin_persen || 0}%`;
+                
+                // Update other stats
+                document.getElementById('reportTotalTerjual').textContent = salesReportData.overall.total_terjual;
+                document.getElementById('reportTotalTransaksi').textContent = salesReportData.overall.total_transaksi;
+
+                // Update header stats
+                document.getElementById('statRevenue').textContent = `Rp ${Number(salesReportData.overall.laba_kotor || salesReportData.overall.total_pendapatan).toLocaleString('id-ID')}`;
+                document.getElementById('statRating').textContent = Number(salesReportData.rating.avg_rating).toFixed(1);
+
+                // Render product sales with profit
+                renderProductSales(salesReportData.products);
+                renderMonthlySales(salesReportData.monthly);
+                
+                // Initialize year filter if available
+                if (salesReportData.availableYears) {
+                    initReportYearFilter(salesReportData.availableYears);
+                }
+                
+                // Update period display
+                updateReportPeriodDisplay(month, year);
+            } catch (e) {
+                console.error('Error loading report:', e);
+                document.getElementById('productSalesContainer').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Gagal memuat laporan.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function resetReportFilter() {
+            document.getElementById('reportFilterMonth').value = '';
+            document.getElementById('reportFilterYear').value = '';
+            document.getElementById('reportPeriodDisplay').style.display = 'none';
+            loadSalesReportFiltered();
+        }
+
+        function updateReportPeriodDisplay(month, year) {
+            const periodDisplay = document.getElementById('reportPeriodDisplay');
+            const periodText = document.getElementById('reportPeriodText');
+            
+            if (!periodDisplay || !periodText) return;
+            
+            let text = '';
+            if (month && year) {
+                text = `Menampilkan laporan bulan ${monthNamesID[parseInt(month) - 1]} ${year}`;
+            } else if (year) {
+                text = `Menampilkan laporan tahun ${year}`;
+            } else if (month) {
+                text = `Menampilkan laporan bulan ${monthNamesID[parseInt(month) - 1]}`;
+            } else {
+                periodDisplay.style.display = 'none';
+                return;
+            }
+            
+            periodDisplay.style.display = 'block';
+            periodText.textContent = text;
+        }
+
+        // Export to CSV
+        function exportLaporanCSV() {
+            if (!salesReportData) {
+                API.showModal({ title: 'Info', message: 'Tidak ada data untuk diexport. Silakan muat laporan terlebih dahulu.' });
+                return;
+            }
+            
+            const month = document.getElementById('reportFilterMonth')?.value;
+            const year = document.getElementById('reportFilterYear')?.value;
+            const userName = document.getElementById('welcomeName').textContent.replace('Selamat Datang, ', '').replace('!', '');
+            
+            // Build period text
+            let periodText = 'Semua Periode';
+            let filenamePeriod = 'semua';
+            if (month && year) {
+                periodText = `${monthNamesID[parseInt(month) - 1]} ${year}`;
+                filenamePeriod = `${year}-${month.toString().padStart(2, '0')}`;
+            } else if (year) {
+                periodText = `Tahun ${year}`;
+                filenamePeriod = year;
+            }
+            
+            const csv = [
+                ['LAPORAN LABA RUGI - LAUTAN KITA'],
+                [`Penjual: ${userName}`],
+                [`Periode: ${periodText}`],
+                [`Tanggal Export: ${new Date().toLocaleString('id-ID')}`],
+                [''],
+                ['RINGKASAN LABA RUGI'],
+                [`Total Pendapatan,Rp ${Number(salesReportData.overall.total_pendapatan).toLocaleString('id-ID')}`],
+                [`Total Modal (HPP),Rp ${Number(salesReportData.overall.total_modal || 0).toLocaleString('id-ID')}`],
+                [`Laba Kotor,Rp ${Number(salesReportData.overall.laba_kotor || 0).toLocaleString('id-ID')}`],
+                [`Margin Keuntungan,${salesReportData.overall.margin_persen || 0}%`],
+                [`Total Produk Terjual,${salesReportData.overall.total_terjual}`],
+                [`Total Transaksi,${salesReportData.overall.total_transaksi}`],
+                [''],
+                ['LABA RUGI PER PRODUK'],
+                ['Nama Produk', 'Terjual', 'Pendapatan', 'Modal', 'Laba', 'Margin'].join(','),
+                ...salesReportData.products.map(p => [
+                    `"${p.nama_produk}"`,
+                    p.total_terjual,
+                    p.total_pendapatan,
+                    p.total_modal || 0,
+                    p.laba || 0,
+                    `${p.margin_persen || 0}%`
+                ].join(',')),
+                [''],
+                ['LABA RUGI BULANAN'],
+                ['Periode', 'Terjual', 'Pendapatan', 'Modal', 'Laba'].join(','),
+                ...salesReportData.monthly.map(m => {
+                    const [yr, mn] = m.bulan.split('-');
+                    return [
+                        `${monthNamesID[parseInt(mn) - 1]} ${yr}`,
+                        m.jumlah_terjual,
+                        m.pendapatan,
+                        m.modal || 0,
+                        m.laba || 0
+                    ].join(',');
+                })
+            ].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Laporan-Penjualan-${userName.replace(/\s+/g, '-')}-${filenamePeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            API.showModal({ 
+                title: 'Export Berhasil', 
+                message: 'Laporan penjualan berhasil diexport ke file CSV.' 
+            });
+        }
+
+        // Load sales report (original function - now calls filtered version)
         async function loadSalesReport() {
             try {
                 const resp = await API.authFetch('/penjual/laporan');
                 if (!resp.ok) throw new Error('Failed to load report');
-                const data = await resp.json();
+                salesReportData = await resp.json();
 
-                // Update overall stats
-                document.getElementById('reportTotalPendapatan').textContent = `Rp ${Number(data.overall.total_pendapatan).toLocaleString('id-ID')}`;
-                document.getElementById('reportTotalTerjual').textContent = data.overall.total_terjual;
-                document.getElementById('reportTotalTransaksi').textContent = data.overall.total_transaksi;
+                // Update laba rugi stats
+                document.getElementById('reportTotalPendapatan').textContent = `Rp ${Number(salesReportData.overall.total_pendapatan).toLocaleString('id-ID')}`;
+                document.getElementById('reportTotalModal').textContent = `Rp ${Number(salesReportData.overall.total_modal || 0).toLocaleString('id-ID')}`;
+                document.getElementById('reportLabaKotor').textContent = `Rp ${Number(salesReportData.overall.laba_kotor || 0).toLocaleString('id-ID')}`;
+                document.getElementById('reportMarginPersen').textContent = `Margin: ${salesReportData.overall.margin_persen || 0}%`;
+                
+                // Update other stats
+                document.getElementById('reportTotalTerjual').textContent = salesReportData.overall.total_terjual;
+                document.getElementById('reportTotalTransaksi').textContent = salesReportData.overall.total_transaksi;
 
                 // Update header stats
-                document.getElementById('statRevenue').textContent = `Rp ${Number(data.overall.total_pendapatan).toLocaleString('id-ID')}`;
-                document.getElementById('statRating').textContent = Number(data.rating.avg_rating).toFixed(1);
+                document.getElementById('statRevenue').textContent = `Rp ${Number(salesReportData.overall.total_pendapatan).toLocaleString('id-ID')}`;
+                document.getElementById('statRating').textContent = Number(salesReportData.rating.avg_rating).toFixed(1);
 
                 // Render product sales
-                renderProductSales(data.products);
-                renderMonthlySales(data.monthly);
+                renderProductSales(salesReportData.products);
+                renderMonthlySales(salesReportData.monthly);
+                
+                // Initialize year filter if available
+                if (salesReportData.availableYears) {
+                    initReportYearFilter(salesReportData.availableYears);
+                }
             } catch (e) {
                 console.error('Error loading report:', e);
                 document.getElementById('productSalesContainer').innerHTML = `
@@ -1435,12 +1678,16 @@
                             <th>Produk</th>
                             <th>Terjual</th>
                             <th>Pendapatan</th>
-                            <th>Transaksi</th>
-                            <th>Rating</th>
+                            <th>Modal (HPP)</th>
+                            <th>Laba</th>
+                            <th>Margin</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${products.map(p => `
+                        ${products.map(p => {
+                            const laba = Number(p.laba || 0);
+                            const isProfit = laba >= 0;
+                            return `
                             <tr>
                                 <td>
                                     <div class="product-info">
@@ -1454,16 +1701,18 @@
                                     </div>
                                 </td>
                                 <td><strong>${p.total_terjual}</strong> unit</td>
-                                <td style="color: #10B981; font-weight: 600;">Rp ${Number(p.total_pendapatan).toLocaleString('id-ID')}</td>
-                                <td>${p.jumlah_transaksi}x</td>
+                                <td style="color: #0077B6; font-weight: 600;">Rp ${Number(p.total_pendapatan).toLocaleString('id-ID')}</td>
+                                <td style="color: #EF4444;">Rp ${Number(p.total_modal || 0).toLocaleString('id-ID')}</td>
+                                <td style="color: ${isProfit ? '#10B981' : '#EF4444'}; font-weight: 700;">
+                                    ${isProfit ? '+' : ''}Rp ${laba.toLocaleString('id-ID')}
+                                </td>
                                 <td>
-                                    <span style="color: #F59E0B;">
-                                        <i class="fas fa-star"></i> ${Number(p.avg_rating).toFixed(1)}
+                                    <span style="background: ${isProfit ? '#D1FAE5' : '#FEE2E2'}; color: ${isProfit ? '#065F46' : '#991B1B'}; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                                        ${p.margin_persen || 0}%
                                     </span>
-                                    <small style="color: #64748B;">(${p.total_ulasan} ulasan)</small>
                                 </td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             `;
@@ -1483,19 +1732,32 @@
 
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
             container.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
                     ${monthly.map(m => {
                 const [year, month] = m.bulan.split('-');
+                const laba = Number(m.laba || 0);
+                const isProfit = laba >= 0;
                 return `
-                            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #0077B6;">
+                            <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid ${isProfit ? '#10B981' : '#EF4444'};">
                                 <div style="font-weight: 600; color: #07304A; margin-bottom: 8px;">
                                     ${monthNames[parseInt(month) - 1]} ${year}
                                 </div>
-                                <div style="color: #10B981; font-weight: 700; font-size: 18px;">
-                                    Rp ${Number(m.pendapatan).toLocaleString('id-ID')}
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="color: #64748B; font-size: 13px;">Pendapatan:</span>
+                                    <span style="color: #0077B6; font-weight: 600;">Rp ${Number(m.pendapatan).toLocaleString('id-ID')}</span>
                                 </div>
-                                <div style="color: #64748B; font-size: 14px;">
-                                    ${m.jumlah_terjual} produk terjual
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span style="color: #64748B; font-size: 13px;">Modal:</span>
+                                    <span style="color: #EF4444; font-weight: 600;">Rp ${Number(m.modal || 0).toLocaleString('id-ID')}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px dashed #e5e7eb; margin-top: 8px;">
+                                    <span style="color: #07304A; font-weight: 600;">Laba:</span>
+                                    <span style="color: ${isProfit ? '#10B981' : '#EF4444'}; font-weight: 700;">
+                                        ${isProfit ? '+' : ''}Rp ${laba.toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                                <div style="color: #64748B; font-size: 12px; margin-top: 8px;">
+                                    <i class="fas fa-shopping-bag"></i> ${m.jumlah_terjual} terjual • ${m.jumlah_transaksi} transaksi
                                 </div>
                             </div>
                         `;
@@ -1507,52 +1769,77 @@
         // Export laporan penjualan ke PDF - format laporan keuangan
         async function exportLaporanPDF() {
             try {
-                // Fetch fresh data from API
-                const resp = await API.authFetch('/penjual/laporan');
-                if (!resp.ok) throw new Error('Failed to load report data');
-                const reportData = await resp.json();
+                // Use existing data or fetch fresh
+                let reportData = salesReportData;
+                if (!reportData) {
+                    const resp = await API.authFetch('/penjual/laporan');
+                    if (!resp.ok) throw new Error('Failed to load report data');
+                    reportData = await resp.json();
+                }
+
+                // Get filter values
+                const month = document.getElementById('reportFilterMonth')?.value;
+                const year = document.getElementById('reportFilterYear')?.value;
 
                 // Get seller name
                 const userName = document.getElementById('welcomeName').textContent.replace('Selamat Datang, ', '').replace('!', '');
                 const today = new Date();
                 const formattedDate = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
-                const periodEnd = today.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                
+                // Build period text
+                let periodText = 'Semua Periode';
+                let filenamePeriod = 'semua';
+                if (month && year) {
+                    periodText = `${monthNamesID[parseInt(month) - 1]} ${year}`;
+                    filenamePeriod = `${year}-${month.toString().padStart(2, '0')}`;
+                } else if (year) {
+                    periodText = `Tahun ${year}`;
+                    filenamePeriod = year;
+                }
 
                 // Calculate totals
                 const totalPendapatan = Number(reportData.overall.total_pendapatan) || 0;
                 const totalTerjual = Number(reportData.overall.total_terjual) || 0;
                 const totalTransaksi = Number(reportData.overall.total_transaksi) || 0;
 
-                // Build product rows for table
+                // Build product rows for table with profit/loss
                 let productRows = '';
                 let no = 1;
                 reportData.products.forEach(p => {
                     const terjual = Number(p.total_terjual) || 0;
                     const pendapatan = Number(p.total_pendapatan) || 0;
-                    const transaksi = Number(p.jumlah_transaksi) || 0;
+                    const modal = Number(p.total_modal) || 0;
+                    const laba = Number(p.laba) || 0;
+                    const margin = p.margin_persen || 0;
                     productRows += `
                         <tr>
                             <td style="border: 1px solid #000; padding: 8px; text-align: center;">${no++}</td>
                             <td style="border: 1px solid #000; padding: 8px;">${p.nama_produk}</td>
                             <td style="border: 1px solid #000; padding: 8px; text-align: center;">${terjual}</td>
-                            <td style="border: 1px solid #000; padding: 8px; text-align: center;">${transaksi}</td>
                             <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${pendapatan.toLocaleString('id-ID')}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${modal.toLocaleString('id-ID')}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${laba >= 0 ? '+' : ''}Rp ${laba.toLocaleString('id-ID')}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: center;">${margin}%</td>
                         </tr>
                     `;
                 });
 
-                // Build monthly rows
+                // Build monthly rows with profit/loss
                 let monthlyRows = '';
                 const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                 reportData.monthly.forEach(m => {
                     const [year, month] = m.bulan.split('-');
                     const pendapatan = Number(m.pendapatan) || 0;
+                    const modal = Number(m.modal) || 0;
+                    const laba = Number(m.laba) || 0;
                     const terjual = Number(m.jumlah_terjual) || 0;
                     monthlyRows += `
                         <tr>
                             <td style="border: 1px solid #000; padding: 8px;">${monthNames[parseInt(month) - 1]} ${year}</td>
                             <td style="border: 1px solid #000; padding: 8px; text-align: center;">${terjual}</td>
                             <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${pendapatan.toLocaleString('id-ID')}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${modal.toLocaleString('id-ID')}</td>
+                            <td style="border: 1px solid #000; padding: 8px; text-align: right;">${laba >= 0 ? '+' : ''}Rp ${laba.toLocaleString('id-ID')}</td>
                         </tr>
                     `;
                 });
@@ -1565,7 +1852,7 @@
                         <div style="text-align: center; margin-bottom: 20px;">
                             <h1 style="margin: 0; font-size: 18px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px;">LAPORAN PENJUALAN</h1>
                             <h2 style="margin: 5px 0; font-size: 14px; font-weight: normal;">Lautan Kita - Marketplace Hasil Laut</h2>
-                            <p style="margin: 5px 0; font-size: 12px;">Periode: s.d. ${periodEnd}</p>
+                            <p style="margin: 5px 0; font-size: 12px;">Periode: ${periodText}</p>
                         </div>
 
                         <hr style="border: none; border-top: 2px solid #000; margin: 15px 0;">
@@ -1584,17 +1871,36 @@
                             </tr>
                         </table>
 
-                        <!-- Ringkasan -->
-                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">I. RINGKASAN PENJUALAN</h3>
+                        <!-- Ringkasan Laba Rugi -->
+                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">I. LAPORAN LABA RUGI</h3>
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                             <tr>
-                                <td style="padding: 5px 0; width: 200px;">Total Pendapatan</td>
+                                <td style="padding: 5px 0; width: 200px;">Total Pendapatan (Penjualan)</td>
                                 <td style="padding: 5px 0; width: 10px;">:</td>
-                                <td style="padding: 5px 0; text-align: right; font-weight: bold;">Rp ${totalPendapatan.toLocaleString('id-ID')}</td>
+                                <td style="padding: 5px 0; text-align: right;">Rp ${totalPendapatan.toLocaleString('id-ID')}</td>
                             </tr>
                             <tr>
-                                <td style="padding: 5px 0;">Total Produk Terjual</td>
+                                <td style="padding: 5px 0;">Total Modal (HPP)</td>
                                 <td style="padding: 5px 0;">:</td>
+                                <td style="padding: 5px 0; text-align: right;">(Rp ${Number(reportData.overall.total_modal || 0).toLocaleString('id-ID')})</td>
+                            </tr>
+                            <tr style="border-top: 1px solid #000;">
+                                <td style="padding: 8px 0; font-weight: bold;">LABA KOTOR</td>
+                                <td style="padding: 8px 0;">:</td>
+                                <td style="padding: 8px 0; text-align: right; font-weight: bold;">Rp ${Number(reportData.overall.laba_kotor || 0).toLocaleString('id-ID')}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 5px 0;">Margin Keuntungan</td>
+                                <td style="padding: 5px 0;">:</td>
+                                <td style="padding: 5px 0; text-align: right;">${reportData.overall.margin_persen || 0}%</td>
+                            </tr>
+                        </table>
+                        
+                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">II. RINGKASAN PENJUALAN</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                            <tr>
+                                <td style="padding: 5px 0; width: 200px;">Total Produk Terjual</td>
+                                <td style="padding: 5px 0; width: 10px;">:</td>
                                 <td style="padding: 5px 0; text-align: right;">${totalTerjual} unit</td>
                             </tr>
                             <tr>
@@ -1605,42 +1911,48 @@
                         </table>
 
                         <!-- Detail Penjualan per Produk -->
-                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">II. RINCIAN PENJUALAN PER PRODUK</h3>
-                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">III. RINCIAN PENJUALAN PER PRODUK</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px;">
                             <thead>
                                 <tr style="background: #f0f0f0;">
-                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 40px;">No</th>
-                                    <th style="border: 1px solid #000; padding: 8px; text-align: left;">Nama Produk</th>
-                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 80px;">Qty Terjual</th>
-                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 80px;">Transaksi</th>
-                                    <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 120px;">Pendapatan</th>
+                                    <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 30px;">No</th>
+                                    <th style="border: 1px solid #000; padding: 6px; text-align: left;">Nama Produk</th>
+                                    <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 50px;">Qty</th>
+                                    <th style="border: 1px solid #000; padding: 6px; text-align: right; width: 90px;">Pendapatan</th>
+                                    <th style="border: 1px solid #000; padding: 6px; text-align: right; width: 90px;">Modal</th>
+                                    <th style="border: 1px solid #000; padding: 6px; text-align: right; width: 90px;">Laba</th>
+                                    <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 50px;">Margin</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${productRows || '<tr><td colspan="5" style="border: 1px solid #000; padding: 8px; text-align: center;">Belum ada data penjualan</td></tr>'}
+                                ${productRows || '<tr><td colspan="7" style="border: 1px solid #000; padding: 8px; text-align: center;">Belum ada data penjualan</td></tr>'}
                             </tbody>
                             <tfoot>
                                 <tr style="background: #f0f0f0; font-weight: bold;">
-                                    <td colspan="2" style="border: 1px solid #000; padding: 8px; text-align: right;">TOTAL</td>
-                                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${totalTerjual}</td>
-                                    <td style="border: 1px solid #000; padding: 8px; text-align: center;">${totalTransaksi}</td>
-                                    <td style="border: 1px solid #000; padding: 8px; text-align: right;">Rp ${totalPendapatan.toLocaleString('id-ID')}</td>
+                                    <td colspan="2" style="border: 1px solid #000; padding: 6px; text-align: right;">TOTAL</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: center;">${totalTerjual}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: right;">Rp ${totalPendapatan.toLocaleString('id-ID')}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: right;">Rp ${Number(reportData.overall.total_modal || 0).toLocaleString('id-ID')}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: right;">Rp ${Number(reportData.overall.laba_kotor || 0).toLocaleString('id-ID')}</td>
+                                    <td style="border: 1px solid #000; padding: 6px; text-align: center;">${reportData.overall.margin_persen || 0}%</td>
                                 </tr>
                             </tfoot>
                         </table>
 
                         <!-- Penjualan Bulanan -->
-                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">III. REKAPITULASI PENJUALAN BULANAN</h3>
+                        <h3 style="font-size: 13px; margin: 20px 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px;">IV. REKAPITULASI LABA RUGI BULANAN</h3>
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                             <thead>
                                 <tr style="background: #f0f0f0;">
                                     <th style="border: 1px solid #000; padding: 8px; text-align: left;">Periode</th>
-                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 100px;">Qty Terjual</th>
-                                    <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 150px;">Pendapatan</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 60px;">Qty</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 110px;">Pendapatan</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 110px;">Modal</th>
+                                    <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 110px;">Laba/Rugi</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${monthlyRows || '<tr><td colspan="3" style="border: 1px solid #000; padding: 8px; text-align: center;">Belum ada data penjualan bulanan</td></tr>'}
+                                ${monthlyRows || '<tr><td colspan="5" style="border: 1px solid #000; padding: 8px; text-align: center;">Belum ada data penjualan bulanan</td></tr>'}
                             </tbody>
                         </table>
 
@@ -1666,7 +1978,7 @@
                 // PDF options
                 const opt = {
                     margin: 10,
-                    filename: `Laporan-Penjualan-${userName.replace(/\s+/g, '-')}-${today.toISOString().split('T')[0]}.pdf`,
+                    filename: `Laporan-Penjualan-${userName.replace(/\s+/g, '-')}-${filenamePeriod}-${today.toISOString().split('T')[0]}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
