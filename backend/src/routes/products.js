@@ -349,12 +349,16 @@ router.delete('/penjual/produk/:id', requireAuth, requireRole(['penjual']), [
 router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req, res) => {
   const conn = await pool.getConnection();
   const { month, year, from, to } = req.query;
-  
+
+  console.log('=== LAPORAN PENJUALAN ===');
+  console.log('User ID:', req.user.id);
+  console.log('Query params:', { month, year, from, to });
+
   try {
     // Build date condition
     let dateCondition = '';
     const dateParams = [];
-    
+
     if (month && year) {
       dateCondition = 'AND MONTH(ps.created_at) = ? AND YEAR(ps.created_at) = ?';
       dateParams.push(parseInt(month), parseInt(year));
@@ -371,7 +375,7 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       dateCondition = 'AND DATE(ps.created_at) <= ?';
       dateParams.push(to);
     }
-    
+
     // Get sales summary per product with date filter (including HPP/modal)
     const [productSales] = await conn.query(`
       SELECT 
@@ -391,11 +395,16 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       ORDER BY total_pendapatan DESC
     `, [req.user.id, ...dateParams]);
 
+    console.log('Product sales count:', productSales.length);
+    console.log('Sample product:', productSales[0]);
+
     // Calculate overall stats with profit/loss
     const totalPendapatan = productSales.reduce((sum, p) => sum + Number(p.total_pendapatan || 0), 0);
     const totalModal = productSales.reduce((sum, p) => sum + Number(p.total_modal || 0), 0);
     const totalTerjual = productSales.reduce((sum, p) => sum + Number(p.total_terjual || 0), 0);
     const totalTransaksi = productSales.reduce((sum, p) => sum + Number(p.jumlah_transaksi || 0), 0);
+
+    console.log('Totals:', { totalPendapatan, totalTerjual, totalTransaksi });
     const labaKotor = totalPendapatan - totalModal;
     const marginPersen = totalPendapatan > 0 ? ((labaKotor / totalPendapatan) * 100).toFixed(1) : 0;
 
@@ -422,21 +431,21 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       WHERE p.penjual_id = ? 
         AND ps.status_pesanan = 'selesai'
     `;
-    
+
     if (year && !month) {
       monthlyQuery += ' AND YEAR(ps.created_at) = ?';
     } else if (!dateCondition) {
       monthlyQuery += ' AND ps.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)';
     }
-    
+
     monthlyQuery += `
       GROUP BY DATE_FORMAT(ps.created_at, '%Y-%m')
       ORDER BY bulan DESC
     `;
-    
+
     const monthlyParams = year && !month ? [req.user.id, parseInt(year)] : [req.user.id];
     const [monthlySales] = await conn.query(monthlyQuery, monthlyParams);
-    
+
     // Add laba calculation to monthly
     const monthlyWithProfit = monthlySales.map(m => ({
       ...m,
@@ -452,7 +461,7 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       JOIN produk p ON p.produk_id = u.produk_id
       WHERE p.penjual_id = ? AND u.status = 'aktif'
     `, [req.user.id]);
-    
+
     // Get daily sales with profit/loss
     const [dailySales] = await conn.query(`
       SELECT 
@@ -471,13 +480,13 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       ORDER BY tanggal DESC
       LIMIT 31
     `, [req.user.id, ...dateParams]);
-    
+
     // Add laba calculation to daily
     const dailyWithProfit = dailySales.map(d => ({
       ...d,
       laba: Number(d.pendapatan || 0) - Number(d.modal || 0)
     }));
-    
+
     // Get available years for filter
     const [availableYears] = await conn.query(`
       SELECT DISTINCT YEAR(ps.created_at) as tahun
@@ -487,12 +496,12 @@ router.get('/penjual/laporan', requireAuth, requireRole(['penjual']), async (req
       WHERE p.penjual_id = ? AND ps.status_pesanan = 'selesai'
       ORDER BY tahun DESC
     `, [req.user.id]);
-    
+
     // Add profit calculation to products
     const productsWithProfit = productSales.map(p => ({
       ...p,
       laba: Number(p.total_pendapatan || 0) - Number(p.total_modal || 0),
-      margin_persen: Number(p.total_pendapatan) > 0 
+      margin_persen: Number(p.total_pendapatan) > 0
         ? (((Number(p.total_pendapatan) - Number(p.total_modal)) / Number(p.total_pendapatan)) * 100).toFixed(1)
         : 0
     }));
